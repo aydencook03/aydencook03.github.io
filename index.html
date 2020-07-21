@@ -1,1 +1,293 @@
-hello world
+<html>
+<meta name='viewport' content='width=device-width,height=device-height, user-scalable=no'>
+<script>
+
+
+
+// Event Handling
+window.onload = function() {reset()}
+document.addEventListener('keydown', keyDown);
+document.addEventListener('mousedown', mouseDown);
+document.addEventListener('mouseup', mouseUp);
+document.addEventListener('mousemove', mouseMove);
+document.addEventListener('touchstart', touchStart);
+document.addEventListener('touchmove', touchMove);
+document.addEventListener('touchend', touchEnd);
+window.addEventListener('resize', resize);
+leftDown = false;
+nothingClicked = true;
+mouse = [];
+start = [];
+end = [];
+function keyDown(data) {
+    if(data.key == 'r') {
+        clearInterval(loop);
+        reset();
+    }
+    if(data.key == 'w') {
+        wallCollision = !wallCollision;
+    }
+}
+function mouseDown(data) {
+    leftDown = true;
+    nothingClicked = true;
+    start[0] = mouse[0] = event.clientX;
+    start[1] = mouse[1] = canvas.height - event.clientY;
+}
+function mouseUp(data) {
+    leftDown = false;
+    nothingClicked = true;
+    end[0] = mouse[0];
+    end[1] = mouse[1];
+}
+function mouseMove(data) {
+    mouse[0] = data.clientX;
+    mouse[1] = canvas.height - data.clientY;
+}
+function touchStart(data) {
+    leftDown = true;
+    nothingClicked = true;
+    start[0] = mouse[0] = data.touches[0].clientX;
+    start[1] = mouse[1] = canvas.height - data.touches[0].clientY;
+}
+function touchMove(data) {
+    mouse[0] = data.touches[0].clientX;
+    mouse[1] = canvas.height - data.touches[0].clientY;
+}
+function touchEnd(data) {
+    leftDown = false;
+    nothingClicked = true;
+    end[0] = mouse[0];
+    end[1] = mouse[1];
+}
+function resize(data) {
+    variables();
+}
+
+function variables() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.color = 'rgb(50,50,50)';
+    
+    if(canvas.width >= canvas.height) {
+        scale = canvas.height;
+    } else {
+        scale = canvas.width;
+    }
+    
+    
+    // Sim Variables
+    fps = 60;
+    gravity = -scale*2;
+    
+    wallCollision = false;
+    dampen = 0.3;
+    
+    // Pendulum Variables
+    radius = scale/35;
+    length = scale/2 - radius*3/2;
+    color = 'crimson';
+    lineWidth = radius/9;
+    pinX = canvas.width/2;
+    pinY = canvas.height/2;
+    a = 179; // angle to vertical
+    a *= Math.PI/180; // convert to radians
+    aV = 0;
+    
+    // Button Variables
+    buttonColor = 'white';
+    textColor = 'black';
+    padding = radius;
+    ctx.font = `bold ${scale/20}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    buttonW = radius;
+    buttonH = radius;
+    
+    button1 = new Button({
+        x: function() {return padding}, 
+        y: function() {return padding}, 
+        w: function() {return buttonW}, 
+        h: function() {return buttonH*2.5}, 
+        text: function() {return 'Graph'}
+    });
+    button2 = new Button({
+        x: function() {return button1.x()},
+        y: function() {return button1.y()+button1.h() + padding/2},
+        w: function() {return buttonW},
+        h: function() {return buttonH},
+        text: function() {return 'Data'}
+    });
+    buttonW = Math.max(ctx.measureText(button1.text()).width, ctx.measureText(button2.text()).width) + padding;
+    buttonH = Math.max(ctx.measureText(button1.text()).actualBoundingBoxDescent, ctx.measureText(button1.text()).actualBoundingBoxAscent, ctx.measureText(button2.text()).actualBoundingBoxDescent, ctx.measureText(button2.text()).actualBoundingBoxAscent) + padding*2;
+}
+
+function Button(params) {
+    this.x = params.x;
+    this.y = params.y;
+    this.active = false;
+    this.text = params.text;
+    this.w = params.w;
+    this.h = params.h;
+    this.color = buttonColor;
+    this.update = function() {
+        if(this.active) {
+            this.color = 'grey';
+        } else {
+            this.color = buttonColor;
+        }
+        if(leftDown && nothingClicked) {
+            if(mouse[0] >= this.x() && start[0] <= this.x() + this.w()) {
+                if(canvas.height - start[1] >= this.y() && canvas.height - start[1] <= this.y() + this.h()) {
+                    nothingClicked = false;
+                    this.active = !this.active;
+                }
+            }
+        }
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = lineWidth*2.5;
+        ctx.rect(this.x(), this.y(), this.w(), this.h());
+        ctx.stroke();
+        ctx.fill();
+        ctx.closePath();
+        ctx.beginPath();
+        ctx.fillStyle = textColor;
+        ctx.fillText(this.text(),this.x()+this.w()/2, this.y()+this.h()/2);
+        ctx.closePath();
+    }
+}
+
+function reset() {
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
+    
+    variables();
+    
+    loop = setInterval(main, 1000/fps);
+}
+
+function drawObjects() {
+    if(leftDown) {
+        x = mouse[0];
+        y = mouse[1];
+        endX = mouse[0];
+        endY = mouse[1];
+        length =  ((pinY-mouse[1])**2 + (pinX-mouse[0])**2)**0.5;
+    } else {
+        x = pinX + length*Math.sin(a);
+        y = pinY - length*Math.cos(a);
+        endX = pinX + length*Math.sin(a);
+        endY = pinY - length*Math.cos(a);
+    }
+    
+    ctx.beginPath();
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = lineWidth;
+    ctx.moveTo(pinX, canvas.height-pinY);
+    ctx.lineTo(endX, canvas.height-endY);
+    ctx.stroke();
+    ctx.closePath();
+    ctx.beginPath();
+    ctx.fillStyle = 'black';
+    ctx.arc(pinX, canvas.height-pinY, lineWidth,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.closePath();
+    ctx.beginPath();
+    ctx.fillStyle = color;
+    ctx.arc(x,canvas.height-y,radius,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.closePath();
+    
+}
+
+function moveObjects() {
+    if(leftDown) {
+        aA = 0;
+        aV = 0;
+        
+        if(mouse[0] > pinX) {
+            if(mouse[1] == pinY) {
+                a = Math.PI/2;
+            } else {
+                a = Math.atan((mouse[0]-pinX)/(pinY-mouse[1]));
+                if(mouse[1] > pinY) {
+                    a += Math.PI;
+                }
+            }
+        }
+        else if(mouse[0] == pinX) {
+            if(mouse[1] >= pinY) {
+                a = Math.PI;
+            } else {
+                a = 0;
+            }
+        }
+        else if(mouse[0] < pinX) {
+            if(mouse[1] == pinY) {
+                a = -Math.PI/2;
+            } else {
+                a = Math.atan((mouse[0]-pinX)/(pinY-mouse[1])) + Math.PI;
+                if(mouse[1] < pinY) {
+                    a += Math.PI;
+                }
+            }
+        }
+    } else {
+        aA = gravity/length * Math.sin(a);
+    }
+    
+    if(wallCollision) {
+        if(x - radius <= 0) {
+            a -= aV/fps;
+            aV *= -dampen;
+        }
+        else if(x + radius >= canvas.width) {
+            a -= aV/fps;
+            aV *= -dampen;
+        }
+        if(y - radius <= 0) {
+            a -= aV/fps;
+            aV *= -dampen;
+        }
+        else if(y + radius >= canvas.height) {
+            a -= aV/fps;
+            aV *= -dampen;
+        }
+    }
+    
+    aV += aA/fps;
+    a += aV/fps;
+}
+
+function main() {
+    // blank out canvas
+    ctx.fillStyle = canvas.color;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    drawObjects();
+    moveObjects();
+    button1.update();
+    button2.update();
+}
+
+
+
+</script>
+<body>
+<canvas id = 'canvas' width='300px' height='300px'></canvas>
+</body>
+<style>
+body {
+    padding: 0;
+    margin: 0;
+}
+canvas {
+    padding: 0;
+    margin: 0;
+}
+</style>
+</html>
