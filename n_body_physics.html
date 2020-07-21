@@ -1,0 +1,481 @@
+<html>
+<meta name='viewport' content='width=device-width,height=device-height'>
+<script>
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// event handling
+
+document.addEventListener('keydown', keyDown);
+document.addEventListener('mousedown', mouseDown)
+document.addEventListener('mouseup', mouseUp)
+document.addEventListener('mousemove', mouseMove);
+document.addEventListener('touchstart', touchStart);
+document.addEventListener('touchmove', touchMove);
+document.addEventListener('touchend', touchEnd);
+window.addEventListener('resize', resize);
+window.onload = function() {reset()}
+
+mouseDown = false;
+nothingGrabbed = true;
+mouseX = 0;
+mouseY = 0;
+
+function keyDown(data) {
+    if(data.key == "r") {
+        clearInterval(loop);
+        reset();
+    }
+    else if(data.key == 'g') {
+        gravityOn = !gravityOn;
+    }
+    else if(data.key == 'Delete') {
+        for(i = 0; i < bodies.length ; i++) {
+            if(((mouseX - bodies[i].x)**2 + (mouseY - bodies[i].y)**2) <= bodies[i].radius**2) {
+                bodies.splice(i, 1);
+            }
+        }
+    }
+    else if(data.key == 'c') {
+        gravity_c *= -1;
+    }
+    else if(data.key == 'f') {
+        falling = !falling;
+    }
+    else if(data.key == 'a') {
+        acceleration *= -1;
+    }
+}
+function mouseDown(data) {
+    mouseDown = true;
+    nothingGrabbed = true;
+    mouseX = data.clientX;
+    mouseY = canvas.height - data.clientY;
+}
+function mouseUp(data) {
+    mouseDown = false;
+    nothingGrabbed = true;
+    for(i = 0; i < bodies.length; i++) {
+        bodies[i].grabbed = false
+    }
+}
+function mouseMove(data) {
+    mouseX = data.clientX;
+    mouseY = canvas.height - data.clientY;
+}
+function touchStart(data) {
+    mouseDown = true;
+    nothingGrabbed = true;
+    mouseX = data.touches[0].clientX;
+    mouseY = canvas.height - data.touches[0].clientY;
+}
+function touchMove(data) {
+    mouseX = data.touches[0].clientX;
+    mouseY = canvas.height - data.touches[0].clientY;
+}
+function touchEnd(data) {
+    mouseDown = false;
+    nothingGrabbed = true;
+    for(i=0;i<bodies.length;i++) {
+        bodies[i].grabbed = false;
+    }
+}
+function resize(data) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Initialize Variables
+
+function reset() {
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.color = 'rgb(70, 70, 70)';
+    
+    if(canvas.width >= canvas.height) {
+        scale = canvas.height;
+    } else {
+        scale = canvas.width;
+    }
+    
+    
+    fps = 120;
+    running = true;
+    
+    
+    loop = setInterval(main, 1000/fps);
+
+    
+    gravityOn = false // if true, objects are gravitationally attracted to each other
+    gravity_c = 334000 // universe's gravitational constant
+
+    boundaryCollision = true // if true, objects collide with edges of canvas
+    wallDampen = 1 // number to multiply by when an objects hit a wall
+
+    bodyCollision = true // if true, bodies will collide with each other
+    bodyDampen = 1 // number to multiply when two objects collide
+
+    falling = false // if true, objects will fall to the bottom of the screen
+    acceleration = 400
+    
+    bodies = [] // a list of each Body object
+    collidingPairs = [] // a list of pairs of colliding bodies
+    
+    /*
+    for(i = 0; i<70; i++) { // randomly place bodies
+        var mass = Math.ceil(Math.random()*23);
+        var x = Math.floor(Math.random()*canvas.width);
+        var y = Math.floor(Math.random()*canvas.height);
+        var bounds = 200;
+        var xV = Math.floor(Math.random() * (bounds - -bounds)) + -bounds;
+        var yV = Math.floor(Math.random() * (bounds - -bounds)) + -bounds;
+        
+        bodies.push(new Body({
+            x: x, 
+            y: y,
+            a: Math.random()*Math.PI*2,
+            xV: xV, 
+            yV: yV, 
+            mass: mass}));
+    }
+    */
+    
+    bodies.push(new Body({
+        x: canvas.width/2 - 50,
+        xV: 10,
+        yV: 0,
+        aV: 3,
+        y: canvas.height/2 + 0,
+        mass: 10
+    }))
+    bodies.push(new Body({
+        x: canvas.width/2 + 50,
+        xV: 0,
+        aV: 0,
+        y: canvas.height/2,
+        mass: 10
+    }))
+    
+    
+    /*
+    bodies.push(new Body({
+    x: canvas.width/2, 
+    y: canvas.height/2, 
+    mass: 24, 
+    xV: -10.83}));
+    bodies.push(new Body({
+    x: canvas.width/2, 
+    y: canvas.height/2 + 150, 
+    mass: 1, 
+    xV: 260, 
+    color: 'teal'}))
+    */
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Body Object Constructor
+
+function Body(params) {
+    
+    this.canvas = params.canvas || canvas;
+    
+    this.x = params.x || this.canvas.width/2;
+    this.y = params.y || this.canvas.height/2;
+    this.a = params.a || 0;
+    
+    this.xV = params.xV || 0;
+    this.yV = params.yV || 0;
+    this.aV = params.aV || 0;
+    
+    this.xA = params.xA || 0;
+    this.yA = params.yA || 0;
+    this.aA = params.aA || 0;
+    
+    this.grabbed = false;
+    
+    this.edgeBlock = params.edgeBlock || boundaryCollision;
+    
+    this.gravity = params.gravityOn || gravityOn;
+    
+    this.mass = params.mass || 6;
+    this.density = params.density || 0.008;
+    this.radius = params.radius || (this.mass/(Math.PI*this.density))**0.5;
+    this.color = params.color || 'crimson';
+    this.lineWidth = params.lineWidth || 2;
+    
+    
+    this.move = function() {
+        this.xV += this.xA/fps;
+        this.yV += this.yA/fps;
+        this.aV += this.aA/fps;
+        this.x += this.xV/fps;
+        this.y += this.yV/fps;
+        this.a += this.aV/fps;
+        
+        if(this.edgeBlock) {
+            if(this.x + this.radius > this.canvas.width) {
+                this.x = this.canvas.width - this.radius;
+                this.xV *= -wallDampen
+            }
+            else if(this.x - this.radius < 0) {
+                this.x = this.radius;
+                this.xV *= -wallDampen;
+            }
+            if(this.y + this.radius > this.canvas.height) {
+                this.y = this.canvas.height - this.radius;
+                this.yV *= -wallDampen;
+            }
+            else if(this.y - this.radius < 0) {
+                this.y = this.radius;
+                this.yV *= -wallDampen;
+            }
+        }
+        if(this.grabbed) {
+            this.xA = 0;
+            this.yA = 0;
+            this.xV = 0;
+            this.yV = 0;
+            this.x = mouseX;
+            this.y = mouseY;
+        }
+    }
+    
+    this.draw = function() {
+        var ctx = this.canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = this.lineWidth;
+        ctx.fillStyle =  this.color;
+        ctx.arc(this.x, this.canvas.height - this.y, this.radius, 0, Math.PI*2, true);
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath()
+        
+        ctx.beginPath();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = this.linewidth;
+        ctx.moveTo(this.x, this.canvas.height - this.y);
+        ctx.lineTo(this.x + this.radius*Math.cos(this.a), this.canvas.height - (this.y + this.radius*Math.sin(this.a)))
+        ctx.stroke();
+        ctx.closePath();
+    }
+    
+    // calculates gravitational attraction to 'otherObject'
+    this.gravityCalc = function(otherObject) {
+        var x1 = this.x;
+        var y1 = this.y;
+        var x2 = otherObject.x;
+        var y2 = otherObject.y;
+        var distSquare = ((x2-x1)**2 + (y2-y1)**2);
+        var val = (gravity_c*otherObject.mass)/((distSquare)**(3/2));
+        var xA = val * (x2 - x1);
+        var yA = val * (y2 - y1);
+        
+        return [xA, yA]
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Physics Code
+
+function bodyHandle() {
+    for(i = 0; i < bodies.length; i++) {
+        
+        if(mouseDown && nothingGrabbed) {
+            if(Math.abs((mouseX - bodies[i].x)**2 + (mouseY - bodies[i].y)**2) <= bodies[i].radius**2) {
+                bodies[i].grabbed = true;
+                nothingGrabbed = false;
+            }
+        }
+        
+        bodies[i].draw()
+        
+        if(running) {
+            if(falling) {
+                bodies[i].yV -= acceleration/fps;
+            }
+            bodies[i].move();
+        }
+        
+        bodies[i].xA = 0;
+        bodies[i].yA = 0;
+        collidingPairs = []
+        if(gravityOn || bodyCollision) {
+            for(b = 0; b < bodies.length; b++) {
+                if(i != b) {
+                    if(bodyCollision) {
+                        var x1 = bodies[i].x;
+                        var y1 = bodies[i].y;
+                        var x2 = bodies[b].x;
+                        var y2 = bodies[b].y;
+                        var rSum = bodies[i].radius + bodies[b].radius;
+                        var dist = { // vector
+                            i: x2 - x1,
+                            j: y2 - y1,
+                            mag: ((x2-x1)**2 + (y2-y1)**2)**0.5,
+                            norm: {
+                                i: (x2-x1)/(((x2-x1)**2 + (y2-y1)**2)**0.5),
+                                j: (y2-y1)/(((x2-x1)**2 + (y2-y1)**2)**0.5)
+                            }
+                        }
+                        if(dist.mag <= rSum) { // static collision
+                            var overlap = rSum - dist.mag;
+                            bodies[i].x -= overlap/2 * dist.norm.i;
+                            bodies[i].y -= overlap/2 * dist.norm.j;
+                            bodies[b].x += overlap/2 * dist.norm.i;
+                            bodies[b].y += overlap/2 * dist.norm.j;
+                           
+                            collidingPairs.push([bodies[i], bodies[b]]);
+                        }
+                    }
+                    if(gravityOn) {
+                        if(bodies[i].gravity) {
+                            var accel = bodies[i].gravityCalc(bodies[b]);
+                            bodies[i].xA += accel[0];
+                            bodies[i].yA += accel[1];
+                        }
+                    }
+                }
+            }
+        }
+        for(c = 0; c < collidingPairs.length; c++) { // dynamic collision
+            var x1 = collidingPairs[c][0].x;
+            var y1 = collidingPairs[c][0].y;
+            var r1 = collidingPairs[c][0].radius;
+            var x2 = collidingPairs[c][1].x;
+            var y2 = collidingPairs[c][1].y;
+            var r2 = collidingPairs[c][1].radius;
+            var dist = { // vector from b1 to b2
+                    i: x2 - x1,
+                    j: y2 - y1,
+                    mag: ((x2-x1)**2 + (y2-y1)**2)**0.5,
+                    norm: {
+                        i: (x2-x1)/(((x2-x1)**2 + (y2-y1)**2)**0.5),
+                        j: (y2-y1)/(((x2-x1)**2 + (y2-y1)**2)**0.5)
+                    }
+            }
+            var m1 = collidingPairs[c][0].mass;
+            var m2 = collidingPairs[c][1].mass;
+            
+            var norm = { // vector normal along 'wall' of collision
+                i: -dist.j/(((dist.i)**2 + (-dist.j)**2)**0.5),
+                j: dist.i/(((dist.i)**2 + (-dist.j)**2)**0.5)
+            }
+            var perp = { // vector normal pointing from b1 to b2
+                i: dist.norm.i,
+                j: dist.norm.j
+            }
+            
+            var vel1 = { // vector of b1 velocity
+                i: collidingPairs[c][0].xV,
+                j: collidingPairs[c][0].yV,
+                dot: function(vect) {
+                    return collidingPairs[c][0].xV * vect.i + collidingPairs[c][0].yV * vect.j
+                }
+            }
+            var vel2 = { // vector of b2 velocity
+                i: collidingPairs[c][1].xV,
+                j: collidingPairs[c][1].yV,
+                dot: function(vect) {
+                    return collidingPairs[c][1].xV * vect.i + collidingPairs[c][1].yV * vect.j
+                }
+            }
+            
+            // new velocities along perp^ of b1 and b2
+            var nV1Perp = (vel1.dot(perp))*(m1-m2)/(m1+m2) + (vel2.dot(perp))*(2*m2)/(m1+m2);
+            var nV2Perp = (vel1.dot(perp))*(2*m1)/(m1+m2) + (vel2.dot(perp))*(m2-m1)/(m1+m2);
+            
+            // velocities of the points of collision on b1 and b2
+            var pVel1M = vel1.dot(norm) + collidingPairs[c][0].aV*r1;
+            var pVel2M = vel2.dot(norm) + collidingPairs[c][1].aV*r2;
+            
+            // moment of inertia for b1 and b2
+            var I1 = 1/2 * m1 * r1**2;
+            var I2 = 1/2 * m2 * r2**2;
+            
+            // new velocities of the points of collisions on b1 and b2
+            var newpVel1M = ((I1-I2)/(I1+I2))*pVel1M + ((2*I2)/(I1+I2))*pVel2M;
+            var newpVel2M = ((2*I1)/(I1+I2))*pVel1M + ((I2-I1)/(I1+I2))*pVel2M;
+            
+            var vectToCol1 = { // vector from x1,y1 to point of collision on b1
+                i: r1*perp.i,
+                j: r1*perp.j
+            };
+            var vectToCol2 = { // vector from x2,y2 to point of collision on b2
+                i: r2*-perp.i,
+                j: r2*-perp.j
+            };
+            
+            // sign of cross product of pVelM and vectToCol
+            var vCrossR1 = (pVel1M*norm.i)*(vectToCol1.j) - (pVel1M*norm.j)*(vectToCol1.i);
+            vCrossR1 = vCrossR1/Math.abs(vCrossR1);
+            var vCrossR2 = (pVel2M*norm.i)*(vectToCol2.j) - (pVel2M*norm.j)*(vectToCol2.i);
+            vCrossR2 = vCrossR2/Math.abs(vCrossR2);
+
+            
+            collidingPairs[c][0].aV = vCrossR1 * (newpVel1M)/r1;
+            collidingPairs[c][1].aV = vCrossR2 * (newpVel2M)/r2;
+            
+            /* draw collision point velocity vectors [debugging]
+            ctx.beginPath();
+            ctx.strokeStyle = 'black';
+            ctx.moveTo(x1 + vectToCol1.i, canvas.height - (y1 + vectToCol1.j));
+            ctx.lineTo((x1+vectToCol1.i) + pVel1M*norm.i, (canvas.height- (y1+vectToCol1.j + pVel1M*norm.j)));
+            ctx.stroke();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.strokeStyle = 'white';
+            ctx.moveTo(x2 + vectToCol2.i, canvas.height - (y2 + vectToCol2.j));
+            ctx.lineTo((x2+vectToCol2.i) + pVel2M*norm.i, (canvas.height- (y2+vectToCol2.j + pVel2M*norm.j)));
+            ctx.stroke();
+            ctx.closePath();
+            console.log(pVel1M, pVel2M);
+            clearInterval(loop);
+            */
+            
+            collidingPairs[c][0].xV = vel1.dot(norm)*norm.i + nV1Perp*perp.i * bodyDampen;
+            collidingPairs[c][0].yV = vel1.dot(norm)*norm.j + nV1Perp*perp.j * bodyDampen;
+            
+            collidingPairs[c][1].xV = vel2.dot(norm)*norm.i + nV2Perp*perp.i * bodyDampen;
+            collidingPairs[c][1].yV = vel2.dot(norm)*norm.j + nV2Perp*perp.j * bodyDampen;
+        }
+        
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Main Loop
+
+function main() {
+    // blank out canvas
+    ctx.fillStyle = canvas.color;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    bodyHandle();
+    if(nothingGrabbed && mouseDown) {
+        bodies.push(new Body({x: mouseX, 
+            y: mouseY, 
+            mass: 90}));
+        bodies[bodies.length-1].move();
+        bodies[bodies.length-1].draw();
+    }
+}
+
+
+
+</script>
+<body>
+<canvas id="canvas" width='300px' height='300px'></canvas>
+<style>
+body {
+    padding: 0;
+    margin: 0;
+}
+canvas {
+    padding: 0;
+    margin: 0;
+}
+</style>
+</html>
