@@ -38,6 +38,8 @@ start = [];
 current = [];
 end = [];
 
+prevInput = null;
+
 function touchStart(data) {
     start = [data.touches[0].clientX-rect.left, data.touches[0].clientY-rect.top];
 
@@ -80,16 +82,20 @@ function touchMove(data) {
             }
 
             if(axis == 'x') {
-                if(xDif > 0) {
+                if(xDif > 0 && prevInput != 'right') {
                     snake.setDir('right');
-                } else {
+                    prevInput = 'right';
+                } else if(xDif < 0 && prevInput != 'left') {
                     snake.setDir('left');
+                    prevInput = 'left';
                 }
             } else {
-                if(yDif > 0) {
+                if(yDif > 0 && prevInput != 'down') {
                     snake.setDir('down');
-                } else {
+                    prevInput = 'down';
+                } else if(yDif < 0 && prevInput != 'up') {
                     snake.setDir('up');
+                    prevInput = 'up';
                 }
             }
         }
@@ -129,7 +135,7 @@ function reset() {
     div = document.getElementsByTagName('div')[0];
     ctx = canvas.getContext('2d');
 
-    fps = 12;
+    fps = 11;
 
     resize();
 
