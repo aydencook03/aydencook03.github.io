@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no, initial-scale=1.0"/>
+    <title>Snake Game</title>
+<script>
+
+////////////////////////////////////////////////////////////////////
+// Event Handling
+
+window.onload = function() {reset()}
+document.addEventListener('keydown', keyDown);
+window.addEventListener('resize', resize);
+document.addEventListener('touchstart', touchStart);
+document.addEventListener('touchmove', touchMove);
+
+function keyDown(data) {
+    if(data.key == 'ArrowLeft' || data.key == 'a') {
+        snake.setDir('left');
+    }
+    if(data.key == 'ArrowRight' || data.key == 'd') {
+        snake.setDir('right');
+    }
+    if(data.key == 'ArrowUp' || data.key == 'w') {
+        snake.setDir('up');
+    }
+    if(data.key == 'ArrowDown' || data.key == 's') {
+        snake.setDir('down');
+    }
+    if(data.key == 'r') {
+        clearInterval(loop);
+        reset();
+    }
+}
+
+start = [];
+current = [];
+end = [];
+
+function touchStart(data) {
+    start = [data.touches[0].clientX-rect.left, data.touches[0].clientY-rect.top];
+
+    if(!swiping) {
+        const x = start[0];
+        const y = start[1];
+
+        if(x >= y && x <= scale - y) {
+            snake.setDir('up');
+        }
+        else if(x >= (scale - y) && x <= scale - (scale - y)) {
+            snake.setDir('down');
+        }
+        else if(y >= x && y <= scale - x) {
+            snake.setDir('left');
+        }
+        else if(y >= (scale - x) && y <= scale - (scale - x)) {
+            snake.setDir('right');
+        }
+    }
+
+}
+
+function touchMove(data) {
+    current = [data.touches[0].clientX-rect.left, data.touches[0].clientY-rect.top];
+
+    if(swiping) {
+        const xDif = current[0] - start[0];
+        const yDif = current[1] - start[1];
+        const mag = (xDif**2 + yDif**2)**0.5;
+
+        if(mag >= sensitivity) {
+            let axis;
+            start = [current[0], current[1]];
+
+            if(Math.abs(xDif) > Math.abs(yDif)) {
+                axis = 'x';
+            } else {
+                axis = 'y';
+            }
+
+            if(axis == 'x') {
+                if(xDif > 0) {
+                    snake.setDir('right');
+                } else {
+                    snake.setDir('left');
+                }
+            } else {
+                if(yDif > 0) {
+                    snake.setDir('down');
+                } else {
+                    snake.setDir('up');
+                }
+            }
+        }
+    }
+}
+
+function resize(data) {
+    scale = Math.min(window.innerWidth, window.innerHeight)*0.95;
+    ratio = window.devicePixelRatio || 1;
+
+    canvas.style.width = `${scale}px`;
+    canvas.style.height = `${scale}px`;
+    canvas.width = scale * ratio;
+    canvas.height = scale * ratio;
+    ctx.scale(ratio, ratio);
+    
+    rect = canvas.getBoundingClientRect();
+    
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = `${Math.round(scale/319)}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `bold ${scale/40}px arial`;
+
+    sensitivity = scale/18/3;
+
+    canvas.style.border = `${Math.round(ctx.lineWidth)}px solid black`;
+    canvas.style.borderRadius = `${Math.round(ctx.lineWidth) * 5}px`;
+}
+
+////////////////////////////////////////////////////////////////////
+// Initialization
+
+function reset() {
+    canvas = document.getElementById('canvas');
+    body = document.getElementsByTagName('body')[0];
+    div = document.getElementsByTagName('div')[0];
+    ctx = canvas.getContext('2d');
+
+    fps = 12;
+
+    resize();
+
+    gridCount = 18;
+    squarePadding = 0;
+    wrapping = false;
+    grid = false;
+    swiping = true; // touchscreen swiping vs buttons
+    text = false;
+
+    appleC = 'crimson';
+    snakeC = '#69f0ae';
+    headC = '#00c853';
+    canvas.color = 'rgb(100,100,100)';
+    bodyC = '#37474f';
+    dieC = 'crimson';
+    gridC = 'grey';
+    textC = 'white';
+
+
+    body.style.background = bodyC;
+
+    apple = new Apple();
+    snake = new Snake();
+
+    loop = setInterval(main, 1000/fps);
+}
+
+////////////////////////////////////////////////////////////////////
+// Snake Constructor Function
+
+function Snake(pos) {
+
+    if(typeof pos === 'undefined') {
+        pos = {};
+    }
+
+
+    let x = pos.x || Math.floor(Math.random()*gridCount);
+    let y = pos.y || Math.floor(Math.random()*gridCount);
+    
+    if(x == apple.x && y == apple.y) {
+        snake = new Snake();
+    }
+
+    this.x = x;
+    this.y = y;
+    this.vel = [0,0];
+    this.body = [[]];
+    this.dead = false;
+    this.eaten = false;
+    this.inputs = [];
+
+    this.update = function() {
+
+        if(this.inputs.length >= 3) {
+            this.inputs.splice(this.inputs.length-1-3, 3);
+        }
+
+        let newV;
+        if(this.inputs.length > 0) {
+            newV = this.inputs.shift();
+            if(newV[0] == -this.vel[0] && newV[1] == 0) { // if newV is opposite of this.vel, don't use it
+                newV = this.vel;
+            }
+            else if(newV[1] == -this.vel[1] && newV[0] == 0) {
+                newV = this.vel;
+            }
+        } else {
+            newV = this.vel;
+        }
+
+        this.vel = newV;
+
+
+        // wall collision
+        if(!wrapping) {
+            if(this.x == 0 && this.vel[0] < 0) {
+                this.x = 0;
+                this.kill();
+            }
+            else if(this.x == gridCount-1 && this.vel[0] > 0) {
+                this.x = gridCount -1;
+                this.kill();
+            }
+            else if(this.y == 0 && this.vel[1] < 0) {
+                this.y = 0;
+                this.kill();
+            }
+            else if(this.y == gridCount-1 && this.vel[1] > 0) {
+                this.y = gridCount -1;
+                this.kill();
+            }
+        } else {
+            if(this.x < 0) {
+                this.x = gridCount;
+                this.setDir('left');
+            }
+            else if(this.x > gridCount - 1) {
+                this.x = -1;
+                this.setDir('right');
+            }
+            else if(this.y < 0) {
+                this.y = gridCount;
+                this.setDir('up');
+            }
+            else if(this.y > gridCount - 1) {
+                this.y = -1;
+                this.setDir('down');
+            }
+        }
+
+        // apple eating
+        const dist = ((this.x - apple.x)**2 + (this.y - apple.y)**2)**0.5;
+        const vect = [(apple.x - this.x)/dist, (apple.y - this.y)/dist];
+        if(dist <=1 && this.vel[0] == vect[0] && this.vel[1] == vect[1]) {
+            this.grow();
+            apple = new Apple();
+        }
+
+
+        // hitting its own tail
+        for(let i = 0; i < this.body.length; i++) {
+            if(i != 0 && this.body[i][0] == this.x && this.body[i][1] == this.y) {
+                this.kill();
+            }
+        }
+
+
+        if(!this.dead) {
+            // calculate new head position
+            this.x += this.vel[0];
+            this.y += this.vel[1];
+
+            // put that head position at front of body
+            this.body.unshift([this.x, this.y]);
+
+            if(!this.eaten) {
+                this.body.pop(); // take off end of body
+            }
+            this.eaten = false;
+        }
+        
+
+        // draw body
+        for(let i = this.body.length-1; i >= 0; i--) {
+            const size = scale/gridCount;
+            const pad = squarePadding;
+            const x = this.body[i][0];
+            const y = this.body[i][1];
+            ctx.beginPath();
+            if(i == 0) {
+                ctx.fillStyle = headC;
+            } else{
+                ctx.fillStyle = snakeC;
+            }
+            ctx.rect(pad + x*size, pad + y*size, size - 2*pad, size - 2*pad);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();  
+        }
+    }
+
+    this.setDir = function(dir) {
+        const val = 1;
+        if(!this.dead) {
+            if(dir == 'left') {
+                this.inputs.push([-val, 0]);
+            }
+            if(dir == 'right') {
+                this.inputs.push([val, 0]);
+            }
+            if(dir == 'up') {
+                this.inputs.push([0, -val]);
+            }
+            if(dir == 'down') {
+                this.inputs.push([0, val]);
+            }
+        }
+    }
+
+    this.kill = function() {
+        this.dead = true;
+        this.vel = [0, 0];
+        this.inputs = [];
+        body.style.background = dieC;
+        window.navigator.vibrate(1000);
+        setTimeout(function() {
+            body.style.background = bodyC;
+            snake = new Snake();
+            return
+        }, 3000);
+    }
+
+    this.grow = function() {
+        this.eaten = true;
+        window.navigator.vibrate(4);
+    }
+}
+
+////////////////////////////////////////////////////////////////////
+// Apple Construcor Function
+
+function Apple(pos) {
+    if(typeof pos === 'undefined') {
+        pos = {};
+    }
+    this.x = pos.x || Math.floor(Math.random()*gridCount);
+    this.y = pos.y || Math.floor(Math.random()*gridCount);
+
+    if(typeof snake === 'undefined') {
+        
+    } else {
+        for(let i = 0; i < snake.body.length; i++) {
+            while(this.x == snake.body[i][0] && this.y == snake.body[i][1]) {
+                this.x = Math.floor(Math.random()*gridCount);
+                this.y = Math.floor(Math.random()*gridCount);
+            }
+        }
+    }
+
+    this.draw = function() {
+        const size = scale/gridCount;
+        const pad = squarePadding;
+        ctx.beginPath();
+        ctx.fillStyle = appleC;
+        ctx.rect(pad + this.x*size, pad + this.y*size, size - 2*pad, size - 2*pad);
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();        
+    }
+}
+
+////////////////////////////////////////////////////////////////////
+// Main Loop
+
+function main() {
+    // Clear Screen
+    ctx.fillStyle = canvas.color;
+    ctx.fillRect(0, 0, scale, scale);
+
+    if(grid) {
+        const size = scale/gridCount;
+        const val = ctx.strokeStyle;
+        ctx.strokeStyle = gridC;
+        for(let c = 0; c<gridCount; c++) {
+            for(let r = 0; r<gridCount; r++) {
+                ctx.beginPath();
+                ctx.rect(c*size, r*size, size, size);
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+        ctx.strokeStyle = val;
+    }
+
+    apple.draw();
+    snake.update();
+
+    if(text) {
+        ctx.beginPath();
+        ctx.fillStyle = textC;
+        ctx.fillText(`Length: ${snake.body.length}`, scale/2, scale/gridCount/2);
+        ctx.closePath();
+    }
+}
+
+</script>
+<style>
+    html {
+        width: 100%;
+        height: 100%;
+    }
+    body {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+        background: darkgrey;
+        overscroll-behavior: contain;
+    }
+    div {
+        display: flex;
+        height: 100%;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+        margin: 0;
+    }      
+    canvas {
+        padding: 0;
+        margin: 0;
+    }
+</style>
+</head>
+<body>
+    <div>
+        <canvas id="canvas" width="300px" height="300px"></canvas>
+    </div>
+</body>
+</html>
