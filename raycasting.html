@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no initial-scale=1.0">
+    <title>Raycasting</title>
+<script>
+
+////////////////////////////////////////////////
+// Event Handling
+
+window.onload = function() {reset()}
+
+window.addEventListener('mousedown', mouseDown);
+window.addEventListener('mousemove', mouseMove);
+window.addEventListener('mouseup', mouseUp);
+
+window.addEventListener('touchstart', touchStart);
+window.addEventListener('touchmove', touchMove);
+window.addEventListener('touchend', touchEnd);
+
+window.addEventListener('resize', resize);
+
+mouse = {
+    down: false,
+    start: {
+        x: null,
+        y: null
+    },
+    current: {
+        x: null,
+        y: null
+    },
+    end: {
+        x: null,
+        y: null
+    }
+}
+
+function mouseDown(data) {
+    mouse.down = true;
+    mouse.start.x = data.clientX - rect.left;
+    mouse.start.y = cHeight - (data.clientY - rect.top);
+}
+function mouseMove(data) {
+    mouse.current.x = data.clientX - rect.left;
+    mouse.current.y = cHeight - (data.clientY - rect.top);
+
+    player.x = mouse.current.x;
+    player.y = mouse.current.y;
+}
+function mouseUp(data) {
+    mouse.down = false;
+    mouse.end.x = data.clientX - rect.left;
+    mouse.end.y = cHeight - (data.clientY - rect.top);
+}
+
+function touchStart(data) {
+    mouse.down = true;
+    mouse.start.x = data.touches[0].clientX - rect.left;
+    mouse.start.y = cHeight - (data.touches[0].clientY - rect.top);
+}
+function touchMove(data) {
+    mouse.current.x = data.touches[0].clientX - rect.left;
+    mouse.current.y = cHeight - (data.touches[0].clientY - rect.top);
+
+    player.x = mouse.current.x;
+    player.y = mouse.current.y;
+}
+function touchEnd() {
+    mouse.down = false;
+    mouse.end.x = mouse.current.x;
+    mouse.end.y = mouse.current.y;
+}
+
+function resize() {
+    scale = Math.min(window.innerWidth, window.innerHeight);
+    ratio = window.devicePixelRatio || 1;
+
+    cWidth = window.innerWidth;
+    cHeight = window.innerHeight;
+
+    viewSlider.max = Math.max(cWidth, cHeight)*1.1;
+    viewSlider.value = Math.max(cWidth, cHeight)*1.1;
+
+    canvas.style.width = `${cWidth}px`;
+    canvas.style.height = `${cHeight}px`;
+    canvas.width = cWidth * ratio;
+    canvas.height = cHeight * ratio;
+    ctx.scale(ratio, ratio);
+
+    rect = canvas.getBoundingClientRect();
+}
+
+////////////////////////////////////////////////
+// Initialization
+
+function reset() {
+    canvas = document.getElementById('canvas');
+    settingsDiv = document.getElementsByClassName('settings')[0];
+    ctx = canvas.getContext('2d');
+
+    resize();
+
+
+    // looks
+    canvas.color = 'black';
+    showSettings = false;
+    
+    boundaryColor = 'crimson';
+    boundaryWidth = 3;
+
+    rayColor = 'rgba(255, 255, 255, 0.6)';
+    rayWidth = 0.2;
+
+    particleColor = 'white';
+    particleRadius = 5;
+    particleRayCount = 1080;
+    particleViewRange = null;
+    
+    wallCount = 10;
+
+
+    walls = [];
+    rays = [];
+    particles = [
+        new Particle()
+    ];
+
+    randomizeWalls();
+
+    player = particles[0];
+
+    document.getElementById('colorPicker').value = '#ffffff';
+    document.getElementById('wallColorPicker').value = '#DC143C';
+
+
+    fps = 60;
+
+    if(typeof loop !== 'undefined') {
+        clearInterval(loop);
+    }
+
+    loop = setInterval(main, 1000/fps);
+}
+
+
+function randomizeWalls() {
+    walls = [];
+    for(let i = 0; i < wallCount; i++) {
+        walls.push(new Boundary(Math.random()*cWidth, Math.random()*cHeight, Math.random()*cWidth, Math.random()*cHeight));
+    }
+}
+
+////////////////////////////////////////////////
+// Ray Object Type
+
+function Ray(x, y, angle, params) {
+
+    if(typeof params === 'undefined') {
+        params = {};
+    }
+
+    this.x = x;
+    this.y = y;
+    this.angle = angle; //radians
+
+    this.range = params.range || Math.max(cWidth, cHeight) * 2;
+    this.color = params.color || rayColor;
+    this.width = params.width || rayWidth;
+    this.active = params.active || true;
+    this.deletable = params.deletable || false;
+
+    this.length = this.range; // implementation detail
+}
+
+Ray.prototype.draw = function() {
+    if(this.deletable) {
+        this.active = false;
+    }
+
+    if(this.active) {
+        ctx.beginPath();
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = this.width;
+        ctx.lineCap = "round";
+        ctx.moveTo(this.x, cHeight - this.y);
+        ctx.lineTo(this.x + this.length*Math.cos(this.angle), cHeight - (this.y + this.length*Math.sin(this.angle)));
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    this.length = this.range;
+}
+
+Ray.prototype.cast = function(wall) {
+    if(this.active) {
+
+        // wall: {
+        //     start: {
+        //         x: number,
+        //         y: number
+        //     },
+        //     end {
+        //         x: number,
+        //         y: number
+        //     },
+        //     width: number
+        // }
+
+        if(this.angle == 0 || this.angle == Math.PI/2 || this.angle == Math.PI || this.angle == 3*Math.PI/2 || this.angle == 2*Math.PI) {
+            this.angle += 0.00001;
+        }
+
+        let x1w = null;
+        let y1w = null;
+        let x2w = null;
+        let y2w = null;
+
+        if(wall.start.x < wall.end.x) {
+            x1w = wall.start.x;
+            x2w = wall.end.x;
+            y1w = wall.start.y;
+            y2w = wall.end.y;
+        } else {
+            x1w = wall.end.x;
+            x2w = wall.start.x;
+            y1w = wall.end.y;
+            y2w = wall.start.y;
+        }
+
+        let x1r = null;
+        let y1r = null;
+        let x2r = null;
+        let y2r = null;
+
+        if(this.x < (this.x + this.length*Math.cos(this.angle))) {
+            x1r = this.x;
+            y1r = this.y;
+            x2r = this.x + this.length*Math.cos(this.angle);
+            y2r = this.y + this.length*Math.sin(this.angle);
+        } else {
+            x1r = this.x + this.length*Math.cos(this.angle);
+            x2r = this.x;
+            y1r = this.y + this.length*Math.sin(this.angle);
+            y2r = this.y;
+        }
+
+        let slopeW = (y2w - y1w)/(x2w - x1w);
+        let slopeR = (y2r - y1r)/(x2r - x1r);
+
+        const xc = ((y1r-(slopeR*x1r))-(y1w-(slopeW*x1w)))/(slopeW-slopeR) || null;
+        const yc = (slopeW*xc) + (y1w - (slopeW*x1w)) || null;
+
+        if(xc >= x1r && xc <= x2r &&
+            xc >= x1w - wall.width/2 && xc <= x2w + wall.width/2 &&
+            yc >= Math.min(y1r, y2r) && yc <= Math.max(y1r, y2r) &&
+            yc >= Math.min(y1w, y2w) - wall.width/2 && yc <= Math.max(y1w, y2w) + wall.width/2) {
+                this.setEnd(xc, yc);
+                return {x: xc, y: yc};
+        }
+    }
+}
+
+Ray.prototype.setEnd = function(x, y) {
+    this.angle = Math.atan2(y - this.y, x - this.x);
+    this.length = ((x - this.x)**2 + (y - this.y)**2)**0.5;
+}
+
+Ray.prototype.lookAt = function(x, y) {
+    this.angle = Math.atan2(y - this.y, x - this.x);
+}
+
+////////////////////////////////////////////////
+// Boundary Object Type
+
+function Boundary(x1, y1, x2, y2, params) {
+
+    if(typeof params === 'undefined') {
+        params = {};
+    }
+
+    this.start = { x: x1, y: y1 };
+    this.end = { x: x2, y: y2 };
+
+    this.xV = params.xV || 0;
+    this.yV = params.yV || 0;
+
+    this.color = params.color || boundaryColor;
+    this.width = params.width || boundaryWidth;
+    this.visible = params.visible || true;
+}
+
+Boundary.prototype.draw = function() {
+    this.start.x += this.xV/fps;
+    this.end.x += this.xV/fps;
+    this.start.y += this.yV/fps;
+    this.end.y += this.yV/fps;
+
+    if(this.visible) {
+        ctx.beginPath();
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = this.width;
+        ctx.lineCap = "round";
+        ctx.moveTo(this.start.x, cHeight - this.start.y);
+        ctx.lineTo(this.end.x, cHeight - this.end.y);
+        ctx.stroke();
+        ctx.closePath();
+    }
+}
+
+////////////////////////////////////////////////
+// Particle Object Type
+
+function Particle(params) {
+
+    if(typeof params === 'undefined') {
+        params = {};
+    }
+
+    // particle variables
+    this.x = params.x || cWidth/2;
+    this.y = params.y || cHeight/2;
+    this.radius = params.radius || particleRadius;
+    this.color = params.color || particleColor;
+
+
+    // particle's 'flashlight' variables
+    this.start = params.start || 0; // starting angle of view (degrees)
+    this.stop = params.stop || 360;
+    this.rayCount = params.rayCount || particleRayCount;
+    this.rayColor = params.rayColor || rayColor;
+    this.rayWidth = params.rayWidth || rayWidth;
+    this.emitting = params.emitting || true;
+    this.viewRange = params.viewRange || particleViewRange;
+
+
+    // implementation details
+    this.ownedRays = []; // list of indexes of rays owned by the particle
+    this.prev = null; // used to detect change in rayCount in this.glow()   
+}
+
+Particle.prototype.glow = function() {
+
+    if(this.rayCount != this.prev) {
+
+        if(this.rayCount > this.prev) {
+
+            let leftToAdd = this.rayCount - this.prev;
+
+            for(let i = 0; i < rays.length; i++) {
+                if(rays[i].deletable && leftToAdd > 0) {
+                    this.ownedRays.push(i);
+                    leftToAdd -= 1;
+                }
+            }
+
+            for(let i = 0; i < leftToAdd; i++) {
+                const index = rays.push(null) -1;
+                this.ownedRays.push(index);
+            }
+
+        } 
+        
+        else {
+
+            let leftToRemove = this.prev - this.rayCount;
+
+            for(let i = this.ownedRays.length -1; i >= 0; i--) {
+                if(this.ownedRays[i] == rays.length-1 && leftToRemove > 0) {
+                    rays.splice(this.ownedRays[i], 1);
+                    this.ownedRays.splice(i, 1);
+                    leftToRemove -= 1;
+                }
+                else if(this.ownedRays[i] != rays.length-1 && leftToRemove >0) {
+                    rays[this.ownedRays[i]].deletable = true;
+                    this.ownedRays.splice(i, 1);
+                    leftToRemove -= 1;
+                }
+            }
+
+        }
+
+        this.prev = this.rayCount;
+    }
+    
+
+    ctx.beginPath();
+    ctx.fillStyle = this.color;
+    ctx.arc(this.x, cHeight - this.y, this.radius, 0, Math.PI*2, true);
+    ctx.fill();
+    ctx.closePath();
+
+    if(this.emitting) {
+        let count = 0;
+        for(let i of this.ownedRays) {
+            const start = this.start;
+            const end = this.stop;
+            if(this.prev == this.rayCount) {
+                rays[i] = new Ray(this.x, this.y, (start + ((end-start)/this.ownedRays.length)*count) * Math.PI/180, {color: this.rayColor, width: this.rayWidth, range: this.viewRange});
+                rays[i].active = true;
+            }
+            count++;
+        }
+    } else {
+        for(let i of this.ownedRays) {
+            rays[i].active = false;
+        }
+    }
+
+    this.prev = this.rayCount;
+}
+
+////////////////////////////////////////////////
+// Logic
+
+function drawWalls() {
+    for(let wall of walls) {
+        wall.draw();
+    }
+}
+
+function sendRays() {
+    for(let ray of rays) {
+
+        for(let wall of walls) {
+            ray.cast(wall);
+        }
+
+        ray.draw();
+    }
+}
+
+function handleParticles() {
+    for(let part of particles) {
+        part.glow();
+    }
+}
+
+
+// Button Functions
+function toggleEmit() {
+    player.emitting = !player.emitting;
+}
+
+function raySliderFunc() {
+    player.rayCount = parseInt(document.getElementById('raySlider').value);
+}
+
+function viewSliderFunc() {
+    player.viewRange = parseInt(document.getElementById('viewSlider').value);
+}
+
+function viewAngleFunc() {
+    const angle = parseInt(document.getElementById('angleSlider').value);
+    const offset = parseInt(document.getElementById('directionSlider').value);
+
+    if(angle != 180 && angle != 0) {
+        player.start = offset - angle/2;
+        player.stop = offset + angle/2;
+    } 
+    else if(angle == 0) {
+        player.start = offset;
+        player.stop = offset;
+    }
+    else if(angle == 180) {
+        player.start = 0;
+        player.stop = 360;
+    }
+}
+
+function toggleSettings() {
+    showSettings = !showSettings;
+
+    if(showSettings) {
+        settingsDiv.style.display = 'flex';
+    } else {
+        settingsDiv.style.display = 'none';
+    }
+}
+
+function chooseColor() {
+    const value = document.getElementById('colorPicker').value;
+
+    player.rayColor = value;
+}
+
+function changeRayWidth() {
+    player.rayWidth = parseFloat(document.getElementById('rayWidthSlider').value);
+}
+
+function chooseWallColor() {
+    const value = document.getElementById('wallColorPicker').value;
+
+    boundaryColor = value;
+
+    for(wall of walls) {
+        wall.color = value;
+    }
+}
+
+function changeWallWidth() {
+    const value = parseFloat(document.getElementById('wallWidthSlider').value);
+
+    boundaryWidth = value;
+
+    for(wall of walls) {
+        if(value > 0) {
+            wall.width = value;
+            wall.visible = true;
+        } else {
+            wall.width = value;
+            wall.visible = false;
+        }
+    }
+}
+
+////////////////////////////////////////////////
+// Main Loop
+
+function main() {
+    // clear canvas
+    ctx.fillStyle = canvas.color;
+    ctx.fillRect(0, 0, cWidth, cHeight);
+
+    sendRays();
+    handleParticles();
+    drawWalls();
+}
+
+</script>
+<style>
+
+html {
+    width: 100%;
+    height: 100%;
+}
+body {
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    overscroll-behavior: contain;
+    font-family:Arial, Helvetica, sans-serif;
+}
+.canvas {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+canvas {
+    padding: 0;
+    margin: 0;
+}
+
+.ui {
+    position: absolute;
+    width: fit-content;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: left;
+    flex-direction: column;
+}
+.buttons {
+    width: fit-content;
+    display: flex;
+    justify-content: left;
+    flex-direction: column;
+}
+.settings {
+    display: none;
+    width: fit-content;
+    justify-content: left;
+    align-items: center;
+    margin: 10px;
+    padding: 10px;
+    border: 2px solid white;
+    border-radius: 7px;
+    background: #37474f;
+    flex-direction: column;
+}
+.set {
+    border-radius: 7px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+}
+
+h6 {
+    margin: 0;
+    text-align: center;
+    color: white;
+}
+input:hover {
+    outline: none;
+}
+input:focus {
+    outline: none;
+}
+input:active {
+    outline: none;
+}
+#emit,#random,#settings {
+    margin: 10px;
+    width: auto;
+    font-weight: bold;
+    color: white;
+    background: #37474f;
+    border: 2px solid white;
+    border-radius: 7px;
+    outline: none;
+    margin-bottom: 0px;
+    padding-top: 2.5px;
+    padding-bottom: 2.5px;
+}
+#emit:active, #random:active, #settings:active {
+    background: #888;
+}
+button:focus {
+    outline: none;
+}
+button::-moz-focus-inner {
+    border: 0;
+}
+
+</style>
+</head>
+<body>
+    <div class = 'canvas'>
+        <canvas id='canvas'></canvas>
+    </div>
+
+    <div class='ui'>
+        <div class='buttons'>
+            <button id='random' onclick='randomizeWalls()'>Randomize</button>
+            <button id='emit' onclick='toggleEmit()'>Emit</button>
+            <button id='settings' onclick='toggleSettings()'>Settings</button>
+        </div>
+
+        <div class='settings'>
+            <div class='set'>
+                <h6>Ray-Count</h6>
+                <input id='raySlider' oninput='raySliderFunc()' type='range' step='2' min='0' max='1080' value='180'/>
+            </div>
+            <div class='set' style='margin-top: 5px'>
+                <h6>View-Range</h6>
+                <input id='viewSlider' oninput='viewSliderFunc()' type='range' min='50' max='2000' value='2000'/>
+            </div>
+            <div class='set' style='margin-top: 5px'>
+                <h6>View-Angle</h6>
+                <input id='angleSlider' oninput='viewAngleFunc()' type='range' step='2' min='0' max='180' value='180'/>
+            </div>
+            <div class='set' style='margin-top: 5px'>
+                <h6>Direction</h6>
+                <input id='directionSlider' oninput='viewAngleFunc()' type='range' step='2' min='0' max='360' value='0'/>
+            </div>
+            <div class='set' style='margin-top: 5px'>
+                <h6>Ray Color</h6>
+                <input style='width: auto; margin-top: 5px' id='colorPicker' oninput='chooseColor()' type='color'/>
+            </div>
+            <div class='set' style='margin-top: 5px'>
+                <h6>Ray Width</h6>
+                <input id='rayWidthSlider' oninput='changeRayWidth()' type='range' step='0.1' min='0.1' max='4' value='0.2'/>
+            </div>
+            <div class='set' style='margin-top: 5px'>
+                <h6>Wall Color</h6>
+                <input style='width: auto; margin-top: 5px' id='wallColorPicker' oninput='chooseWallColor()' type='color'/>
+            </div>
+            <div class='set' style='margin-top: 5px'>
+                <h6>Wall Width</h6>
+                <input id='wallWidthSlider' oninput='changeWallWidth()' type='range' step='0.2' min='0' max='8' value='3'/>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
