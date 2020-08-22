@@ -1,0 +1,409 @@
+<html>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+	var canvas;
+	var ctx;
+	
+	var centerX;
+	var centerY;
+	
+	var objects = [];
+	
+	var originR;
+	var originM;
+	
+	var gravityC;
+	
+	var startingX;
+	var startingY;
+	var startingVx;
+	var startingVy;
+	
+	var tracers = [];
+	var tracersOn;
+	var vectorsOn;
+
+	var xPos;
+	var yPos;
+	var vel;
+	var ang;
+	var mass;
+	
+	window.onload = function() {
+		canvas = document.getElementById("canvas");
+		ctx = canvas.getContext("2d");
+		
+		centerX = canvas.width/2;
+		centerY = canvas.height/2;		
+		
+		xPos = document.getElementById("xPos");
+		
+	 yPos = document.getElementById("yPos");
+	 
+	 vel = document.getElementById("vel");
+	 
+	 ang = document.getElementById("ang");
+	 
+	 mass = document.getElementById("mass");
+		
+		
+		originR =8;
+	 originM = 6;
+	 
+	 tracersOn = false;
+	 vectorsOn = false;
+	
+	 gravityC = 	-517500;
+ 	
+ 	resetArrays();
+		
+		
+	 setInterval(simulation, 1000/60);
+	}
+	
+	function simulation() {
+		
+		ctx.beginPath();
+		ctx.fillStyle = "grey";
+		ctx.fillRect(0,0,canvas.width, canvas.height);
+		ctx.closePath();
+		
+		objects[0].r = Math.log(originM)*2.8;
+		if(objects[0].r < 1 &&
+		   originM > 0) {
+			objects[0].r = 2;
+		}
+		
+		/*
+		ctx.beginPath();
+		ctx.moveTo(centerX, centerY);
+		ctx.lineTo(centerX,centerY +115);
+		ctx.moveTo(centerX,centerY);
+		ctx.lineTo(centerX,centerY-115);
+		ctx.moveTo(centerX, centerY);
+		ctx.lineTo(centerX+115,centerY);
+		ctx.moveTo(centerX, centerY);
+		ctx.lineTo(centerX-115,centerY);
+		ctx.stroke();
+		ctx.closePath();
+		*/
+		
+		
+		updateValues();
+		
+		ctx.beginPath();
+		ctx.moveTo(startingX, startingY);
+		ctx.lineTo(startingX + startingVx/2, startingY - startingVy/2);
+		ctx.stroke();
+		ctx.closePath();
+		circle(startingX, startingY, 3, "crimson");
+		
+		drawObjects();
+		bodyPhysics();
+		infoBox();
+		
+		while(tracers.length >= 260) {
+			tracers.splice(0,1);
+		}
+	}
+	
+	function updateValues() {
+		
+		var angle = -((Number(ang.value)) * (Math.PI/180));
+		
+		startingX = (Number(xPos.value) + centerX)
+		
+		startingY = (Number(yPos.value) + centerY);
+		
+		startingVx = (Number(vel.value)) * Math.cos(angle);
+		startingVy = (Number(vel.value)) * Math.sin(angle);
+		
+		originM = mass.value;
+		
+		objects[0].m = originM;
+	}
+	
+	function resetArrays() {
+		for(i=objects.length; i>=0; i--) {
+			objects.splice(i,1);
+		}
+		for(i=tracers.length; i>=0; i--) {
+			tracers.splice(i,1);
+		}
+		
+		var origin = new object();
+		origin.x = centerX;
+		origin.y = centerY;
+		origin.r = originR;
+		origin.c = "lightblue";
+		origin.m = originM;
+		
+		objects[0] = origin;
+	}
+	
+	function toggleTracers() {
+		if(tracersOn == false) {
+			tracersOn = true;
+			return;
+		}
+		if(tracersOn == true) {
+			tracersOn = false;
+			tracers.splice(0,tracers.length);
+			return;
+		}
+	}
+	function toggleVectors() {
+		if(vectorsOn == false) {
+			vectorsOn = true;
+			return;
+		}
+		if(vectorsOn == true) {
+			vectorsOn = false;
+			return;
+		}
+	}
+	
+	function infoBox() {
+		ctx.textAlign = "left";
+		ctx.textBaseline = "bottom";
+		ctx.fillStyle = "black";
+		ctx.font = "bold 11px arial";
+		
+		ctx.fillText("Initial x: " + Math.round(startingX - centerX) + " m", 10, canvas.height - 100);
+		
+		ctx.fillText("Initial y: " + Math.round(startingY *-1 + centerY) + " m", 10, canvas.height - 80);
+		
+		ctx.fillText("Initial Velocity: " + vel.value + " m/s", 10, canvas.height - 60);
+		
+		ctx.fillText("Initial Angle: " + ((Number(ang.value))) + "°", 10, canvas.height - 40);
+		
+		ctx.fillText("Mass: " + originM + " kg", 10, canvas.height - 20);
+		
+		ctx.save();
+		ctx.font = "bold 12.5px arial";
+		ctx.textAlign = "center";
+		ctx.fillText("Gravity Simulation By Ayden Cook", centerX, 20);
+		ctx.restore();
+	}
+	
+	function drawObjects() {
+		for(i=0; i<tracers.length; i++) {
+			drawRect(tracers[i].x -0.2, tracers[i].y - 0.2, 0.4, 0.4, "black");
+		}
+		
+		for(i=0; i<objects.length; i++) {
+			
+			objects[i].draw();
+			objects[i].move();
+		}
+	}
+	
+	function bodyPhysics() {
+		for(i=1; i<objects.length; i++) {
+			var bodX = objects[i].x;
+			var bodY = objects[i].y;
+			var centX = objects[0].x;
+			var centY = objects[0].y;
+			
+			objects[i].dist = (Math.sqrt((Math.pow(Math.abs(bodX - centX), 2)) + Math.pow(Math.abs(bodY - centY), 2)));
+			
+			objects[i].angle = 
+			Math.acos((bodX - centX)/objects[i].dist);			
+			if(bodY >= centY) {
+			   	objects[i].angle = Math.PI + Math.acos((centX - bodX)/objects[i].dist)
+			   }
+			   
+		objects[i].aX = gravityC * (objects[0].m / Math.pow(objects[i].dist, 2)) * Math.cos(objects[i].angle); 
+		
+		objects[i].aY = gravityC * (objects[0].m / Math.pow(objects[i].dist, 2)) * Math.sin(objects[i].angle);
+		}
+		
+	}
+	
+	function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16.5)];
+  }
+  return color;
+}
+
+	
+	function createObjects() {
+		
+		var body1 = new object();
+		body1.x = startingX;
+		body1.y = startingY;
+		body1.r = 1 + Math.random()*2.5;
+		body1.c = getRandomColor();
+		body1.vX = startingVx;
+		body1.vY = startingVy;
+		
+		objects.push(body1);
+	}
+	
+	function object() {
+		this.x = 0;
+		this.y = 0;
+		this.aX = 0;
+		this.aY = 0;
+		this.vX = 0;
+		this.vY = 0;
+		this.m = 0;
+		this.r = 0;
+		this.c = 0;
+		this.dist = 0;
+		this.angle = 0;
+		
+		this.draw = function() {
+			if(this.vX != 0 &&
+			   this.vY != 0 &&
+			   tracersOn == true) {
+			tracers.push( {
+				x: this.x,
+				y: this.y
+			});
+			}
+			
+			if(vectorsOn == true) {
+			ctx.beginPath();
+			ctx.strokeStyle = "green";
+			ctx.moveTo(this.x,this.y);
+			ctx.lineTo(this.x + this.vX/2, this.y - this.vY/2);
+			ctx.stroke();
+			ctx.closePath();
+			ctx.beginPath();
+			ctx.strokeStyle = "yellow";
+			ctx.moveTo(this.x,this.y);
+			ctx.lineTo(this.x + this.aX/2, this.y - this.aY/2);
+			ctx.stroke();
+			ctx.closePath();
+			}
+			
+			circle(this.x,this.y,this.r,this.c);
+		}
+		
+		this.move = function() {
+			this.vX += this.aX/60;
+			this.vY += this.aY/60;
+			this.x += this.vX/60;
+			this.y -= this.vY/60;
+		}
+	}
+	
+	function circle(x,y,r,c) {
+		ctx.beginPath();
+		ctx.strokeStyle = "black";
+		ctx.fillStyle = c;
+		ctx.lineWidth = 1.5;
+		ctx.arc(x,y,r, 0, Math.PI*2, true);
+		ctx.fill();
+		ctx.stroke();
+		ctx.closePath();
+	}
+	
+	function drawRect(x,y,w,h,c) {
+		ctx.beginPath();
+		ctx.strokeStyle = "black";
+		ctx.lineWidth = 2;
+		ctx.fillStyle = c;
+		ctx.rect(x,y,w,h); 
+		ctx.fill();
+		ctx.stroke();
+		ctx.closePath();
+	}
+	
+</script>
+<style>
+	
+	canvas {
+		border: 2px solid black;
+		border-radius: 5px;
+	}
+	div {
+		display: flex;
+		justify-content: center;
+	}
+	body {
+		background-color: teal;
+	}
+	button {
+		width: 160px;
+		height: 40px;
+		border: 2px solid black;
+		border-radius: 7px;
+		margin: 5px;
+		font-size: 25px;
+		font-weight: bold;
+		
+	}
+	button:hover {
+		outline: none;
+	}
+	input {
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		width: 175px;
+		height: 10px;
+		background: #d3d3d3;
+		outline: none;
+		border-radius: 10px;
+		border: 2px solid black;
+		margin-top: 25px;
+	}
+	input:hover {
+		outline: none;
+	}
+	input::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		width: 20px;
+		height: 20px;
+		background: #4CAF50;
+		border-radius: 10px;
+		border: 2px solid black;
+	}
+	input::-moz-range-thumb {
+		-moz-appearance: none;
+		width: 20px;
+		height: 20px;
+		background: #4CAF50;
+		border-radius: 10px;
+		border: 2px solid black;
+	}
+	.smaller {
+		width: 85px;	
+		font-size: 10px;
+		margin-right: 0px;
+	}
+
+</style>
+<body>
+	<div>
+<canvas id="canvas" width = "350px" height = "350px"></canvas>
+</div>
+<div>
+	<button onclick="resetArrays()">Delete All</button>
+	<button onclick="createObjects()">Spawn</button>
+</div>
+<div>
+	
+	<input id = "xPos" type="range" min="-175" max="175" value="0">
+		
+		<input id = "yPos" type="range" min="-175" max="175" value="-115"> 
+		</div>
+		<div>
+			<input id = "vel" type="range" min="0" max="300" value="150"> 
+				
+				<input id = "ang" type="range" min="0" max="360" value="0">
+					
+</div>
+<div>
+	
+	<input id = "mass" type="range" min="0" max="10" value="5">
+		<button class="smaller" onclick="toggleTracers()">Tracers</button>
+		<button class="smaller" onclick="toggleVectors()">Vectors</button>
+	
+</div>
+</body>
+</html>
