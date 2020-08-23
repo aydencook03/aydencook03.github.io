@@ -190,6 +190,7 @@ function reset() {
     particleColor = 'white';
     particleRadius = 5;
     particleRayCount = 1080;
+    particleViewStyle = 'mixed'; // 'pure', 'mixed', 'shaded'
     particleViewRange = null;
     
     wallCount = 10;
@@ -268,7 +269,7 @@ function reset() {
             new Boundary(cWidth * 0.54, cHeight * 0.997, cWidth * 0.781, cHeight * 0.851),
         ];
     } else {
-        particleViewRange = 317;
+        particleViewRange = 340;
         walls = [
         new Boundary(cWidth * 0.684, cHeight * 0.753, cWidth * 0.824, cHeight * 0.705),
         new Boundary(cWidth * 0.691, cHeight * 0.615, cWidth * 0.683, cHeight * 0.628),
@@ -300,8 +301,8 @@ function reset() {
     document.getElementById('raySlider').value = particleRayCount;
     document.getElementById('angleSlider').value = 180;
     document.getElementById('directionSlider').value = 0;
-    document.getElementById('rayWidthSlider').value = 0.2;
-    document.getElementById('wallWidthSlider').value = 3;
+    document.getElementById('rayWidthSlider').value = rayWidth;
+    document.getElementById('wallWidthSlider').value = boundaryWidth;
 
     document.getElementById('viewSlider').max = Math.max(cWidth, cHeight)*1.1;
     document.getElementById('viewSlider').value = particleViewRange || Math.max(cWidth, cHeight)*1.1;
@@ -532,6 +533,8 @@ function Particle(params) {
     this.emitting = params.emitting || true;
     this.viewRange = params.viewRange || particleViewRange;
 
+    this.viewStyle = params.viewStyle || particleViewStyle;
+
 
     // implementation details
     this.ownedRays = []; // list of indexes of rays owned by the particle
@@ -540,12 +543,26 @@ function Particle(params) {
 
 Particle.prototype.glow = function() {
 
+    if(this.emitting && this.viewStyle == 'shaded') {
+        let grd = ctx.createRadialGradient(this.x, cHeight - this.y, this.radius, this.x, cHeight - this.y, this.viewRange);
+        grd.addColorStop(0, this.rayColor);
+        grd.addColorStop(1, canvas.color);
+        ctx.beginPath();
+        ctx.fillStyle = grd;
+        for(let index of this.ownedRays) {
+            const ray = rays[index];
+            for(let wall of walls) {
+                ray.cast(wall);
+            }
+            ctx.lineTo(ray.x + ray.length*Math.cos(ray.angle), cHeight - (ray.y + ray.length*Math.sin(ray.angle)));
+        }
+        ctx.fill();
+        ctx.closePath();
+    }
+
     if(this.rayCount != this.prev) {
-
         if(this.rayCount > this.prev) {
-
             let leftToAdd = this.rayCount - this.prev;
-
             for(let i = 0; i < rays.length; i++) {
                 if(rays[i].deletable && leftToAdd > 0) {
                     this.ownedRays.push(i);
@@ -557,13 +574,9 @@ Particle.prototype.glow = function() {
                 const index = rays.push(null) -1;
                 this.ownedRays.push(index);
             }
-
         } 
-        
         else {
-
             let leftToRemove = this.prev - this.rayCount;
-
             for(let i = this.ownedRays.length -1; i >= 0; i--) {
                 if(this.ownedRays[i] == rays.length-1 && leftToRemove > 0) {
                     rays.splice(this.ownedRays[i], 1);
@@ -576,13 +589,11 @@ Particle.prototype.glow = function() {
                     leftToRemove -= 1;
                 }
             }
-
         }
-
         this.prev = this.rayCount;
     }
     
-
+    // draw particle (circle)
     ctx.beginPath();
     ctx.fillStyle = this.color;
     ctx.arc(this.x, cHeight - this.y, this.radius, 0, Math.PI*2, true);
@@ -594,8 +605,20 @@ Particle.prototype.glow = function() {
         for(let i of this.ownedRays) {
             const start = this.start;
             const end = this.stop;
+            let color = this.rayColor;
             if(this.prev == this.rayCount) {
-                rays[i] = new Ray(this.x, this.y, (start + ((end-start)/this.ownedRays.length)*count) * Math.PI/180, {color: this.rayColor, width: this.rayWidth, range: this.viewRange});
+
+                if(this.viewStyle == 'mixed') {
+                    let grd = ctx.createRadialGradient(this.x, cHeight - this.y, this.radius, this.x, cHeight - this.y, this.viewRange);
+                    grd.addColorStop(0, this.rayColor);
+                    grd.addColorStop(1, canvas.color);
+                    color = grd;
+                }
+                else if(this.viewStyle == 'shaded') {
+                    color = 'rgba(0,0,0,0)';
+                }
+
+                rays[i] = new Ray(this.x, this.y, (start + ((end-start)/this.ownedRays.length)*count) * Math.PI/180, {color: color, width: this.rayWidth, range: this.viewRange});
                 rays[i].active = true;
             }
             count++;
@@ -619,6 +642,7 @@ function drawWalls() {
 }
 
 function sendRays() {
+ 
     for(let ray of rays) {
 
         for(let wall of walls) {
@@ -671,6 +695,23 @@ function toggleMode() {
 
 function raySliderFunc() {
     player.rayCount = parseInt(document.getElementById('raySlider').value);
+}
+
+function changeViewStyle() {
+    const value = document.getElementById('viewStyle').innerHTML;
+
+    if(value == 'Pure') {
+        document.getElementById('viewStyle').innerHTML = 'Mixed';
+        player.viewStyle = 'mixed';
+    }
+    else if(value == 'Mixed') {
+        document.getElementById('viewStyle').innerHTML = 'Shaded';
+        player.viewStyle = 'shaded';
+    }
+    else if(value == 'Shaded') {
+        document.getElementById('viewStyle').innerHTML = 'Pure';
+        player.viewStyle = 'pure';
+    }
 }
 
 function viewSliderFunc() {
@@ -896,7 +937,20 @@ input:active {
     padding-top: 2.5px;
     padding-bottom: 2.5px;
 }
-#mode:active, #random:active, #reset:active, #settings:active, #save:active, #restore:active {
+#viewStyle {
+    margin-top: 5px;
+    width: auto;
+    font-weight: bold;
+    color: white;
+    background: #37474f;
+    border: 2px solid white;
+    border-radius: 7px;
+    outline: none;
+    margin-bottom: 2.5px;
+    padding-top: 2.5px;
+    padding-bottom: 2.5px;
+}
+#mode:active, #random:active, #reset:active, #settings:active, #save:active, #restore:active, #viewStyle:active {
     background: #888;
 }
 button:focus {
@@ -934,6 +988,10 @@ button::-moz-focus-inner {
             <div class='set'>
                 <h6>Ray Count</h6>
                 <input id='raySlider' oninput='raySliderFunc()' type='text'  value='1080'/>
+            </div>
+            <div class = 'set' style='margin-top: 5px'>
+                <h6>View-Style</h6>
+                <button id='viewStyle' onclick='changeViewStyle()'>Mixed</button>
             </div>
             <div class='set' style='margin-top: 5px'>
                 <h6 id='viewRange'>View Range</h6>
