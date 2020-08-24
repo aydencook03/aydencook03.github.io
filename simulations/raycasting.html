@@ -751,6 +751,15 @@ function toggleSettings() {
     } else {
         settingsDiv.style.display = 'none';
     }
+
+    const bottom = settingsDiv.getBoundingClientRect().bottom;
+    const top = settingsDiv.getBoundingClientRect().top;
+
+    if(bottom >= window.innerHeight) {
+        settingsDiv.style.height = `${window.innerHeight - top - 35}px`;
+    } else {
+        settingsDiv.style.height = 'auto';
+    }
 }
 
 function chooseColor() {
@@ -902,6 +911,8 @@ canvas {
     border-radius: 7px;
     background: #37474f;
     flex-direction: column;
+    overflow: scroll;
+    height: auto;
 }
 .set {
     border-radius: 7px;
