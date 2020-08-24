@@ -197,7 +197,7 @@ function reset() {
 
 
     if(window.innerWidth > window.innerHeight) {
-        particleViewRange = Math.min(cWidth, cHeight);
+        particleViewRange = Math.min(cWidth, cHeight) / 2;
         walls = [
             new Boundary(cWidth * 0.277, cHeight * 0.448, cWidth * 0.277, cHeight * 0.442),
             new Boundary(cWidth * 0.315, cHeight * 0.745, cWidth * 0.316, cHeight * 0.747),
