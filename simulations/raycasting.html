@@ -872,6 +872,7 @@ body {
     margin: 0;
     overscroll-behavior: contain;
     font-family:Arial, Helvetica, sans-serif;
+    overflow: hidden;
 }
 .canvas {
     width: 100%;
@@ -911,8 +912,10 @@ canvas {
     border-radius: 7px;
     background: #37474f;
     flex-direction: column;
-    overflow: scroll;
+    overflow-y: auto;
+    overflow-x: hidden;
     height: auto;
+    width: auto;
 }
 .set {
     border-radius: 7px;
@@ -1033,7 +1036,7 @@ button::-moz-focus-inner {
                 <h6 id='wallWidth'>Wall Width</h6>
                 <input id='wallWidthSlider' oninput='changeWallWidth()' type='range' step='0.2' min='0' max='8' value='3'/>
             </div>
-            <div class='set' style='margin-top: 5px'>
+            <div class='set' style='margin-top: 5px; margin-bottom: 0px'>
                 <button id='save' onclick='generateLayout()'>Save Layout</button>
                 <button id='restore' onclick='restoreLayout()'>Restore Layout</button>
             </div>
