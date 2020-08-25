@@ -237,7 +237,11 @@ function initBall() {
                     running = false;
                     body.style.background = loseC;
                     lost = true;
-                    window.navigator.vibrate(1000);
+                    try {
+                        window.navigator.vibrate(1000);
+                    } catch {
+
+                    }
                     setTimeout(function() {
                         body.style.background = bodyC;
                         variables();
@@ -264,7 +268,11 @@ function initBall() {
                             running = false;
                             body.style.background = winC;
                             won = true;
-                            window.navigator.vibrate(1000);
+                            try {
+                                window.navigator.vibrate(1000);
+                            } catch {
+
+                            }
                             setTimeout(function() {
                                 body.style.background = bodyC;
                                 variables();
@@ -274,17 +282,29 @@ function initBall() {
                         this.y = paddleY - this.r;
                         this.yV *= -1;
                         this.xV = (this.x - (paddleX + paddleW/2)) * upper/(paddleW/2);
-                        window.navigator.vibrate(vibr);
+                        try {
+                            window.navigator.vibrate(vibr);
+                        } catch {
+
+                        }
                     }
                     else if(prevX + this.r < paddleX) {
                         this.x = paddleX - this.r;
                         this.xV *= -1;
-                        window.navigator.vibrate(vibr);
+                        try {
+                            window.navigator.vibrate(vibr);
+                        } catch {
+
+                        }
                     }
                     else if(prevX - this.r > paddleX + paddleW) {
                         this.x = paddleX + paddleW + this.r;
                         this.xV *= -1;
-                        window.navigator.vibrate(vibr);
+                        try {
+                            window.navigator.vibrate(vibr);
+                        } catch {
+
+                        }
                     }
                 }
             }
@@ -356,17 +376,29 @@ function brickCollision() {
         if(prevC != ballC && !brick[getIndex(prevC, ballR)]) {
             ball.xV *= -1;
             bothTestsFailed = false;
-            window.navigator.vibrate(vibr);
+            try {
+                window.navigator.vibrate(vibr);
+            } catch {
+
+            }
         }
         if(prevR != ballR && !brick[getIndex(ballC, prevR)]) {
             ball.yV *= -1;
             bothTestsFailed = false;
-            window.navigator.vibrate(vibr);
+            try {
+                window.navigator.vibrate(vibr);
+            } catch {
+
+            }
         }
         if(bothTestsFailed) {
             ball.xV *= -1;
             ball.yV *= -1;
-            window.navigator.vibrate(vibr);
+            try {
+                window.navigator.vibrate(vibr);
+            } catch {
+                
+            }
         }
     }
 }
@@ -438,6 +470,8 @@ body {
     margin: 0;
     background: darkgrey;
     overscroll-behavior: contain;
+    position: fixed;
+    overflow: hidden;
 }
 div {
     display: flex;
