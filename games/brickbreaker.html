@@ -11,7 +11,7 @@
 window.onload = function() {reset()}
 document.addEventListener('keydown', keyDown);
 document.addEventListener('mousemove', mouseMove);
-document.addEventListener('touchmove', touchMove);
+document.addEventListener('touchmove', touchMove, {passive: false});
 document.addEventListener('click', click);
 document.addEventListener('touchstart', touchStart);
 window.addEventListener('resize', resizeEvent);
@@ -49,6 +49,7 @@ function touchMove(data) {
     touchY = data.touches[0].clientY - rect.top;
     mouseX = null;
     mouseY = null;
+    data.preventDefault();
 }
 
 function touchStart(data) {

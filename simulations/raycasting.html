@@ -16,7 +16,7 @@ window.addEventListener('mousemove', mouseMove);
 window.addEventListener('mouseup', mouseUp);
 
 window.addEventListener('touchstart', touchStart);
-window.addEventListener('touchmove', touchMove);
+window.addEventListener('touchmove', touchMove, {passive: false});
 window.addEventListener('touchend', touchEnd);
 
 window.addEventListener('resize', resize);
@@ -117,6 +117,7 @@ function touchMove(data) {
 
     mouse.current.x = newX;
     mouse.current.y = newY;
+    data.preventDefault();
 }
 function touchEnd() {
     mouse.down = false;
@@ -490,10 +491,14 @@ function Boundary(x1, y1, x2, y2, params) {
 }
 
 Boundary.prototype.draw = function() {
-    this.start.x += this.xV/fps;
-    this.end.x += this.xV/fps;
-    this.start.y += this.yV/fps;
-    this.end.y += this.yV/fps;
+    if(this.xV) {
+        this.start.x += this.xV/fps;
+        this.end.x += this.xV/fps;
+    }
+    if(this.yV) {
+        this.start.y += this.yV/fps;
+        this.end.y += this.yV/fps;
+    }
 
     if(this.visible) {
         ctx.beginPath();
