@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no, initial-scale=1.0">
+    <title>Game Of Life</title>
+</head>
+<script>
+
+//////////////////////////////////////////////////////////
+// Event Handling
+
+window.onload = function() {reset()}
+window.addEventListener('resize', resize);
+window.addEventListener('mousedown', mouseDown);
+window.addEventListener('mousemove', mouseMove);
+window.addEventListener('mouseup', mouseUp);
+window.addEventListener('touchstart', touchStart);
+window.addEventListener('touchmove', touchMove, {passive: false});
+window.addEventListener('touchend', touchEnd);
+window.addEventListener('keypress', keyPress);
+
+
+mouseActive = false;
+draw = false;
+mouseC = 0;
+mouseR = 0
+
+function mouseDown(data) {
+    mouseC = Math.floor((data.clientX - rect.left)/cellSize);
+    mouseR = Math.floor((data.clientY - rect.top)/cellSize);
+
+    draw = !grid[mouseC][mouseR];
+
+    mouseActive = true;
+}
+
+function mouseMove(data) {
+    mouseC = Math.floor((data.clientX - rect.left)/cellSize);
+    mouseR = Math.floor((data.clientY - rect.top)/cellSize);
+}
+
+function mouseUp() {
+    mouseActive = false;
+}
+
+function touchStart(data) {
+    mouseC = Math.floor((data.touches[0].clientX - rect.left)/cellSize);
+    mouseR = Math.floor((data.touches[0].clientY - rect.top)/cellSize);
+
+    draw = !grid[mouseC][mouseR];
+
+    mouseActive = true;
+}
+
+function touchMove(data) {
+    mouseC = Math.floor((data.touches[0].clientX - rect.left)/cellSize);
+    mouseR = Math.floor((data.touches[0].clientY - rect.top)/cellSize);
+    data.preventDefault();
+}
+
+function touchEnd() {
+    mouseActive = false;
+}
+
+function keyPress(data) {
+    toggleRunning();
+}
+
+function resize() {
+    scale = Math.min(window.innerWidth, window.innerHeight);
+    scaleO = Math.max(window.innerWidth, window.innerHeight);
+    ratio = window.devicePixelRatio || 1;
+
+    cellSize = scaleO/45;
+
+    cWidth = (Math.floor(window.innerWidth/cellSize) * cellSize) - cellSize/1.01;
+    cHeight = (Math.floor(window.innerHeight/cellSize) * cellSize) - cellSize/1.01;
+
+    cols = parseInt(cWidth/cellSize);
+    rows = parseInt(cHeight/cellSize);
+
+    grid = generateGrid(cols, rows); // new grid for current frame
+
+    canvas.style.width = `${cWidth}px`;
+    canvas.style.height = `${cHeight}px`;
+    canvas.width = cWidth * ratio;
+    canvas.height = cHeight * ratio;
+    ctx.scale(ratio, ratio);
+
+    ctx.lineWidth = 1.5;
+
+    rect = canvas.getBoundingClientRect();
+    
+    buttons[0].style.top = `${rect.top}px`;
+    buttons[1].style.top = `${rect.top}px`;
+    buttons[2].style.top = `${rect.top}px`;
+    buttons[3].style.top = `${rect.top + buttons[0].getBoundingClientRect().height}px`;
+
+    buttons[0].style.left = `${rect.left}px`;
+    buttons[1].style.left = `${buttons[0].getBoundingClientRect().left + buttons[0].getBoundingClientRect().width}px`;
+    buttons[2].style.left = `${buttons[1].getBoundingClientRect().left + buttons[1].getBoundingClientRect().width}px`;
+    buttons[3].style.left = `${rect.left}px`;
+}
+
+//////////////////////////////////////////////////////////
+// Initialization
+
+function reset() {
+    canvas = document.getElementById('canvas');
+    buttons = document.getElementsByTagName('button');
+    ctx = canvas.getContext('2d');
+
+    resize();
+
+
+    // colors
+    canvas.color = '#666';
+    cellC = 'crimson';
+
+    showGrid = false;
+
+
+    ctx.strokeStyle = 'black';
+
+    fps = 60;
+    cellUpdateRate = 8; // sim updates per second
+    speed = 3; // value for button
+    count = 0;
+    running = true;
+
+    if(typeof loop !== 'undefined') {
+        clearInterval(loop);
+    }
+
+    loop = setInterval(main, 1000/fps);
+}
+
+function generateGrid(cols, rows) {
+    let grid = new Array(cols);
+
+    for(let c = 0; c < cols; c++) {
+        grid[c] = new Array(rows);
+    }
+
+    for(let c = 0; c < cols; c++) {
+        for(let r = 0; r < rows; r++) {
+            grid[c][r] = Math.floor(Math.random()*2);
+        }
+    }
+
+    return grid;
+}
+
+//////////////////////////////////////////////////////////
+// Logic
+
+function drawGrid() {
+    ctx.fillStyle = cellC;
+    const padding = 4;
+    for(let c = 0; c < cols; c ++) {
+        for(let r = 0; r < rows; r++) {
+            if(grid[c][r] == 1) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'black';
+                ctx.rect(c * cellSize + padding/2, r * cellSize + padding/2, cellSize - padding, cellSize - padding);
+                ctx.fill();
+                ctx.stroke();
+                ctx.closePath();
+            }
+
+            if(showGrid) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'grey';
+                ctx.rect(c*cellSize, r*cellSize, cellSize, cellSize);
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+    }
+}
+
+function mouseInteraction() {
+    if(mouseActive && mouseC >= 0 && mouseC < cols && mouseR >= 0 && mouseR < rows) {
+        let temp = 0;
+        if(draw) {
+            temp = 1;
+        }
+        grid[mouseC][mouseR] = temp;
+    }
+}
+
+function rules() {
+    const birthRequirement = 3; // number of neighbors for a dead cell to become alive (birth)
+    const surviveLower = 2; // lowest number of neighbors before a cell dies due to underpopulation
+    const surviveUpper = 3; // highest number of neighbors before a cell dies due to overpopulation
+    const deadState = 0;
+    const aliveState = 1;
+
+    // create a temporary copy of the grid
+    let tempGrid = generateGrid(cols, rows);
+    for(let c = 0; c < cols; c++) {
+        for(let r = 0; r < rows; r++) {
+            tempGrid[c][r] = grid[c][r];
+        }
+    }
+
+    // count neighbors of each cell and perform logic on them
+    for(let c = 0; c < cols; c++) {
+        for(let r = 0; r < rows; r++) {
+            const neighbors = countNeighbors(tempGrid, c, r, aliveState);
+
+            if(tempGrid[c][r] == deadState && neighbors == birthRequirement) {
+                grid[c][r] = aliveState;
+            }
+            else if(tempGrid[c][r] == aliveState && (neighbors < surviveLower || neighbors > surviveUpper)) {
+                grid[c][r] = deadState;
+            }
+            else {
+                grid[c][r] = tempGrid[c][r];
+            }
+        }
+    }
+}
+
+function countNeighbors(array, x, y, aliveState) {
+    let neighbors = 0;
+    
+    for(let i = -1; i <= 1; i++) {
+        for(let j = -1; j <= 1; j++) {
+            try {
+                if(array[x + i][y + j] == aliveState) {
+                    neighbors += 1;
+                }
+            } catch {
+                neighbors += 0;
+            }
+        }
+    }
+
+    return (neighbors - array[x][y]);
+}
+
+function toggleRunning() {
+	running = !running;
+	if(running) {
+		buttons[0].innerHTML = 'Pause';
+	} else {
+		buttons[0].innerHTML = 'Play';
+    }
+
+    buttons[0].style.left = `${rect.left}px`;
+    buttons[1].style.left = `${buttons[0].getBoundingClientRect().left + buttons[0].getBoundingClientRect().width}px`;
+    buttons[2].style.left = `${buttons[1].getBoundingClientRect().left + buttons[1].getBoundingClientRect().width}px`;
+}
+
+function clearGrid() {
+    for(let c = 0; c < cols; c++) {
+        for(let r = 0; r < rows; r++) {
+            grid[c][r] = 0;
+        }
+    }
+}
+
+function random() {
+    grid = generateGrid(cols, rows);
+}
+
+function speedUp() {
+    const speeds = [1, 3, 8, 10, 15, 30];
+    
+    speed += 1;
+
+    if(speed > speeds.length) {
+        speed = 1;
+    }
+
+    buttons[3].innerHTML = `Speed: ${speed}`;
+    cellUpdateRate = speeds[speed-1];
+}
+
+//////////////////////////////////////////////////////////
+// Main Loop
+
+function main() {
+    if(count >= fps) {
+        count = 0;
+    }
+
+    // clear canvas
+    ctx.fillStyle = canvas.color;
+    ctx.fillRect(0, 0, cWidth, cHeight);
+
+    drawGrid();
+
+    if(running && (count % (fps/cellUpdateRate) == 0)) {
+        rules();
+    }
+
+    mouseInteraction();
+
+    if(running) {
+        count += 1;
+    }
+}
+
+</script>
+<style>
+
+html {
+    width: 100%;
+    height: 100%;
+}
+body {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    background: #37474f;
+    overscroll-behavior: contain;
+}
+canvas {
+    margin: 0;
+    padding: 0;
+    border: 2px solid black;
+    border-radius: 10px;
+}
+button {
+    position: absolute;
+    border: 2px solid black;
+    font-weight: bold;
+    outline: none;
+}
+button:active {
+    outline: none;
+    background: #ccc;
+}
+button:hover {
+    outline: none;
+}
+button:focus {
+    outline: none;
+}
+
+#playPause {
+    border-top-left-radius: 10px;
+}
+#clear {
+    border-left: none;
+    border-right: none;
+}
+#random {
+    border-bottom-right-radius: 10px;
+}
+#speed {
+    border-top: none;
+    border-bottom-right-radius: 10px;
+}
+
+</style>
+<body>
+    <canvas id='canvas' width='300px' height='300px'></canvas>
+    <button id='playPause' onclick="toggleRunning()">Pause</button>
+    <button id='clear' onclick='clearGrid()'>Clear</button>
+    <button id='random' onclick='random()'>Random</button>
+    <button id='speed' onclick='speedUp()'>Speed: 3</button>
+</body>
+</html>

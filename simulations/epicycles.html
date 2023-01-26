@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no initial-scale=1.0">
+    <title>Epicycles</title>
+<script>
+
+////////////////////////////////////////////////
+// Event Handling
+
+window.onload = function() {reset()}
+
+document.addEventListener('mousedown', mouseDown);
+document.addEventListener('mousemove', mouseMove);
+document.addEventListener('mouseup', mouseUp);
+
+document.addEventListener('touchstart', touchStart);
+document.addEventListener('touchmove', touchMove, {passive: false});
+document.addEventListener('touchend', touchEnd);
+
+window.addEventListener('resize', resize);
+
+mouse = {
+    down: false,
+    x: 0,
+    y: 0,
+    startX: 0,
+    startY: 0
+}
+
+function mouseDown(data) {
+    mouse.x = data.clientX - rect.left;
+    mouse.y = cHeight - (data.clientY - rect.top);
+    mouse.startX = data.clientX - rect.left;
+    mouse.startY = cHeight - (data.clientY - rect.top);
+
+    if(mouse.startY < window.innerHeight*0.95) {
+        mouse.down = true;
+        drawing = [];
+        running = false;
+        drawing.push([mouse.x - cWidth/2, mouse.y - cHeight/2]);
+    }
+}
+
+function mouseMove(data) {
+    mouse.x = data.clientX - rect.left;
+    mouse.y = cHeight - (data.clientY - rect.top);
+
+    if(mouse.down) {
+        drawing.push([mouse.x - cWidth/2, mouse.y - cHeight/2]);
+    }
+}
+
+function mouseUp(data) {
+    if(mouse.startY < window.innerHeight*0.95) {
+        mouse.down = false;
+        curve = [];
+        coefficients = [];
+        periodOfDrawing = drawing.length;
+        slider.max = drawing.length;
+        slider.value = drawing.length;
+        numberOfEpicycles = Infinity;
+        time = 0;
+        doneWithFirst = false;
+        running = true;
+        
+        coefficients = Coefficient.generate(drawing, {sort: sortEpicycles, count: numberOfEpicycles});
+    }
+}
+
+function touchStart(data) {
+    mouse.x = data.touches[0].clientX - rect.left;
+    mouse.y = cHeight - (data.touches[0].clientY - rect.top);
+    mouse.startX = data.touches[0].clientX - rect.left;
+    mouse.startY = cHeight - (data.touches[0].clientY - rect.top);
+
+    if(mouse.startY < window.innerHeight*0.95) {
+        mouse.down = true;
+        drawing = [];
+        running = false;
+        drawing.push([mouse.x - cWidth/2, mouse.y - cHeight/2]);
+    }
+}
+function touchMove(data) {
+    mouse.x = data.touches[0].clientX - rect.left;
+    mouse.y = cHeight - (data.touches[0].clientY - rect.top);
+
+    if(mouse.down) {
+        drawing.push([mouse.x - cWidth/2, mouse.y - cHeight/2]);
+    }
+    if(mouse.startY < window.innerHeight*0.95) {
+        data.preventDefault();
+    }
+}
+function touchEnd(data) {
+    if(mouse.startY < window.innerHeight*0.95) {
+        mouse.down = false;
+        curve = [];
+        coefficients = [];
+        periodOfDrawing = drawing.length;
+        slider.max = drawing.length;
+        slider.value = drawing.length;
+        numberOfEpicycles = Infinity;
+        time = 0;
+        doneWithFirst = false;
+        running = true;
+        
+        coefficients = Coefficient.generate(drawing, {sort: sortEpicycles, count: numberOfEpicycles});
+    }
+}
+
+
+function resize() {
+    scale = Math.min(window.innerWidth, window.innerHeight);
+    ratio = window.devicePixelRatio || 1;
+
+    cWidth = window.innerWidth;
+    cHeight = window.innerHeight*0.95;
+
+    pixelsPerUnit = 100;
+    sensitivity = 20;
+
+    canvas.style.width = `${cWidth}px`;
+    canvas.style.height = `${cHeight}px`;
+    canvas.width = cWidth * ratio;
+    canvas.height = cHeight * ratio;
+    ctx.scale(ratio, ratio);
+
+    rect = canvas.getBoundingClientRect();
+}
+
+////////////////////////////////////////////////
+// Initialization
+
+function reset() {
+    canvas = document.getElementById('canvas');
+    div = document.getElementsByTagName('div')[0];
+    slider = document.getElementById('slider');
+    ctx = canvas.getContext('2d');
+
+    resize();
+
+
+    // colors
+    canvas.style.background = 'grey';
+    div.style.background = 'grey';
+    circleColor = 'black';
+    vectorColor = 'crimson';
+    drawingColor = 'black';
+    curveColor = 'black';
+    penHeadColor = 'teal';
+    penColor = 'black';
+
+    // style
+    circleLineWidth = 0.5;
+    vectorLineWidth = 1;
+    drawingLineWidth = 2;
+    curveLineWidth = 2;
+
+
+    // details
+    sortEpicycles = true;
+    numberOfEpicycles = Infinity;
+
+
+    periodOfDrawing = 0;
+    prevNumberOfCoefficients = null;
+    skipPush = false;
+    doneWithFirst = false;
+    coefficients = [];
+    drawing = []; // user drawing points
+    curve = []; // path drawn by epicycles
+
+
+    fps = 60;
+    rate = 0.5;
+
+
+    running = false;
+    time = 0;
+
+    if(typeof loop !== 'undefined') {
+        clearInterval(loop);
+    }
+
+    loop = setInterval(main, 1000/fps);
+}
+
+////////////////////////////////////////////////
+// Complex Math
+
+function Complex(a, b) {
+    this.re = a;
+    this.im = b;
+}
+
+Complex.prototype.add = function(complex) {
+    return new Complex(this.re + complex.re, this.im + complex.im);
+}
+
+Complex.prototype.mag = function() {
+    return (this.re**2 + this.im**2)**0.5;
+}
+
+Complex.prototype.mult = function(complex) {
+    const placeValues = 10;
+    return new Complex(Math.round((this.re*complex.re - this.im*complex.im)*(10**placeValues))/(10**placeValues), Math.round((this.im*complex.re + this.re*complex.im)*(10**placeValues))/(10**placeValues));
+}
+
+
+function eToix(x) {
+    const placeValues = 10;
+    const real = Math.round(Math.cos(x)*(10**placeValues))/(10**placeValues);
+    const imag = Math.round(Math.sin(x)*(10**placeValues))/(10**placeValues);
+
+    return new Complex(real, imag);
+}
+
+////////////////////////////////////////////////
+// Fourier Coefficients
+
+function Coefficient(index, value) {
+    this.index = index;
+    this.value = value;
+}
+
+Coefficient.generate = function(coordinates, params) {
+    if(typeof params === 'undefined') {
+        params = {};
+    }
+
+    const sort = params.sort || false;
+    let numberOfCoefficients = params.count;
+
+    if(!numberOfCoefficients || numberOfCoefficients == Infinity) {
+        numberOfCoefficients = coordinates.length;
+    }
+
+
+    let coeff = [];
+    const points = [];
+    
+    // convert pointArray to array of complex coordinates
+    for(let i = 0; i < coordinates.length; i++) {
+        points.push(new Complex(coordinates[i][0], coordinates[i][1]));
+    }
+    
+
+    const N = points.length;
+
+    for(let k = 0; k < N; k++) {
+        let sum = new Complex(0, 0);
+
+        for(let n = 0; n < N; n++) {
+            const exponent = -(2*Math.PI/N) * k * n;
+            const toAdd = points[n].mult(eToix(exponent));
+
+            sum = sum.add(toAdd);
+        }
+        sum = sum.mult(new Complex(1/N, 0));
+        
+        coeff.push(new Coefficient(k, sum));
+    }
+
+    if(sort || numberOfCoefficients < coordinates.length) {
+        // sort by largest to lowest magnitude (for looks)
+        const temp = [];
+        for(let i = 0; i < coeff.length; i++) {
+            temp.push(coeff[i]); // create temporary copy of coeff
+        }
+
+        for(let n = 0; n < temp.length; n++) {
+            let largest = 0;
+            let indexOfLargest = null;
+            for(let i = 0; i < temp.length; i++) {
+                const mag = temp[i].value.mag();
+                if(mag > largest) {
+                    largest = mag;
+                    indexOfLargest = i;
+                }
+            }
+            coeff[n] = temp[indexOfLargest];
+            temp[indexOfLargest].value.mag = function() {return 0};
+        }
+    }
+    if(numberOfCoefficients < coordinates.length) {
+        const amountToSplice = coordinates.length - numberOfCoefficients;
+        coeff.splice(coeff.length - amountToSplice, amountToSplice);
+    }
+
+    return coeff;
+}
+
+////////////////////////////////////////////////
+// Drawing
+
+function drawEpicycles() {
+    let sum = new Complex(0, 0);
+
+    for(let k = 0; k < coefficients.length; k++) {
+        const exponent = (2*Math.PI*coefficients[k].index*time)/periodOfDrawing;
+        const complex = eToix(exponent);
+        const val = coefficients[k].value.mult(complex);
+        const mag = val.mag();
+        
+        ctx.beginPath();
+        ctx.strokeStyle = circleColor;
+        ctx.lineWidth = circleLineWidth;
+        ctx.arc(cWidth/2 + sum.re, cHeight/2 - sum.im, mag, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.closePath();
+
+        if(k == coefficients.length -1) {
+            ctx.beginPath();
+            ctx.strokeStyle = penColor;
+            ctx.lineWidth = vectorLineWidth;
+            ctx.moveTo(cWidth/2 + sum.re, cHeight/2 - sum.im);
+            ctx.lineTo(cWidth/2 + sum.re + val.re, cHeight/2 - (sum.im + val.im));
+            ctx.stroke();
+            ctx.closePath();
+
+            currentPos = new Complex(cWidth/2 + sum.re + val.re, cHeight/2 - (sum.im + val.im));
+        } else {
+            ctx.beginPath();
+            ctx.strokeStyle = vectorColor;
+            ctx.lineWidth = vectorLineWidth;
+            ctx.moveTo(cWidth/2 + sum.re, cHeight/2 - sum.im);
+            ctx.lineTo(cWidth/2 + sum.re + val.re, cHeight/2 - (sum.im + val.im));
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        sum = sum.add(val);
+    }
+
+    if(running && !skipPush) {
+        curve.push([sum.re, sum.im]);
+    }
+
+    if(curve.length > periodOfDrawing && !skipPush) {
+        curve.shift();
+    }
+}
+
+function instantlyUpdateCurve() {
+    curve = [];
+    skipPush = true;
+    for(let n = 0; n < periodOfDrawing; n++) {
+        let sum = new Complex(0, 0);
+
+        for(let k = 0; k < coefficients.length; k++) {
+            const exponent = (2*Math.PI*coefficients[k].index*n)/periodOfDrawing;
+            const complex = eToix(exponent);
+            const val = coefficients[k].value.mult(complex);
+            sum = sum.add(val);
+        }
+
+        curve.push([sum.re, sum.im]);
+    }
+}
+
+function drawDrawing() {
+    ctx.beginPath();
+    ctx.strokeStyle = drawingColor;
+    ctx.lineWidth = drawingLineWidth;
+    for(let i = 0; i < drawing.length-1; i++) {
+        ctx.moveTo(cWidth/2 + drawing[i][0], cHeight - (cHeight/2 + drawing[i][1]));
+        ctx.lineTo(cWidth/2 + drawing[i+1][0], cHeight - (cHeight/2 + drawing[i+1][1]));
+    }
+    ctx.lineTo(mouse.x, cHeight - mouse.y);
+    ctx.stroke();
+    ctx.closePath();
+}
+
+function drawCurve() {
+    ctx.beginPath();
+    ctx.strokeStyle = curveColor;
+    ctx.lineWidth = curveLineWidth;
+    for(let i = 0; i < curve.length-1; i++) {
+        ctx.moveTo(cWidth/2 + curve[i][0], cHeight - (cHeight/2 + curve[i][1]));
+        ctx.lineTo(cWidth/2 + curve[i+1][0], cHeight - (cHeight/2 + curve[i+1][1]));
+    }
+    if(doneWithFirst) {
+        try {
+            ctx.moveTo(cWidth/2 + curve[curve.length-1][0], cHeight - (cHeight/2 + curve[curve.length-1][1]));
+            ctx.lineTo(cWidth/2 + curve[0][0], cHeight - (cHeight/2 + curve[0][1]));
+        } catch {}
+    }
+    ctx.stroke();
+    ctx.closePath();
+}
+
+function sliderInput() {
+    const val = parseInt(slider.value);
+    numberOfEpicycles = val;
+    coefficients = Coefficient.generate(drawing, {count: val, sort: sortEpicycles});
+}
+
+////////////////////////////////////////////////
+// Main Loop
+
+function main() {
+    // clear canvas
+    ctx.clearRect(0, 0, cWidth, cHeight);
+
+    if(running) {
+        time += 1;
+    }
+    if(time >= periodOfDrawing) {
+        time = 0;
+        doneWithFirst = true;
+        if(skipPush) {
+            skipPush = false;
+        }
+    }
+
+    drawEpicycles();
+
+    if(prevNumberOfCoefficients != coefficients.length && time > 1) {
+        instantlyUpdateCurve();
+    }
+
+    if(mouse.down) {
+        drawDrawing();
+    } else {
+        drawCurve();
+    }
+
+    // draw tip of 'pen'
+    ctx.beginPath();
+    ctx.fillStyle = penHeadColor;
+    ctx.arc(currentPos.re, currentPos.im, curveLineWidth/2, 0, Math.PI*2);
+    ctx.fill();
+    ctx.closePath();
+
+
+    prevNumberOfCoefficients = coefficients.length;
+}
+
+</script>
+<style>
+
+html {
+    width: 100%;
+    height: 100%;
+}
+body {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    overscroll-behavior: contain;
+    position: fixed;
+    overflow: hidden;
+}
+canvas {
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    bottom: 0;
+}
+div {
+    margin: 0;
+    position: absolute;
+    top: 0;
+    height: 5%;
+    width: 100%;
+    border-bottom: 2px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+input {
+    width: 95%;
+}
+input:hover {
+    outline: none;
+}
+input:focus {
+    outline: none;
+}
+input:active {
+    outline: none;
+}
+
+</style>
+</head>
+<body>
+    <canvas id='canvas'></canvas>
+    <div>
+        <input id='slider' oninput = 'sliderInput()' type='range' min='1' max='100' value='100'/>
+    </div>
+</body>
+</html>
