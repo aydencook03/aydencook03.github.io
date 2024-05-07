@@ -1,6 +1,6 @@
 {
-    "short_name": "Snake Game",
-    "name": "Classic Snake Game",
+    "short_name": "Snake",
+    "name": "Most Expensive Snake Game",
     "icons": [
         {
             "src": "./icons/favicon.ico",
