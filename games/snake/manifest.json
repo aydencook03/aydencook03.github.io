@@ -34,13 +34,13 @@
         {
             "src": "./screenshots/main-mobile.png",
             "sizes": "1080x1920",
-            "type": "image/webp",
+            "type": "image/png",
             "label": "Eat the apple on mobile!"
         },
         {
             "src": "./screenshots/main-desktop.png",
             "sizes": "2219x1248",
-            "type": "image/webp",
+            "type": "image/png",
             "form_factor": "wide",
             "label": "Eat the apple on desktop!"
         }
