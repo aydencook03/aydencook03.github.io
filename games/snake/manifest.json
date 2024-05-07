@@ -1,6 +1,6 @@
 {
     "short_name": "Snake",
-    "name": "Most Expensive Snake Game",
+    "name": "Snake Game",
     "icons": [
         {
             "src": "./icons/favicon.ico",
@@ -47,7 +47,7 @@
     ],
     "start_url": "./index.html",
     "background_color": "#37474f",
-    "display": "standalone",
+    "display": "fullscreen",
     "scope": "./",
     "theme_color": "#646464"
 }
