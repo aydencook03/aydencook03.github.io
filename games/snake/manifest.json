@@ -5,7 +5,7 @@
         {
             "src": "./icons/favicon.ico",
             "type": "image/x-icon",
-            "sizes": "16x16 32x32"
+            "sizes": "32x32"
         },
         {
             "src": "./icons/icon-192.png",
@@ -28,6 +28,21 @@
             "type": "image/png",
             "sizes": "512x512",
             "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "./screenshots/main-mobile.png",
+            "sizes": "1080x1920",
+            "type": "image/webp",
+            "label": "Eat the apple on mobile!"
+        },
+        {
+            "src": "./screenshots/main-desktop.png",
+            "sizes": "2219x1248",
+            "type": "image/webp",
+            "form_factor": "wide",
+            "label": "Eat the apple on desktop!"
         }
     ],
     "start_url": "./index.html",
