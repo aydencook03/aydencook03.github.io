@@ -1,7 +1,7 @@
 self.addEventListener('install', function (event) {
     // Perform install steps
     event.waitUntil(
-        caches.open('my-game-cache-v1').then(function (cache) {
+        caches.open('my-game-cache-v2').then(function (cache) {
             return cache.addAll([
                 './',
                 './index.html',
