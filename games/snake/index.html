@@ -370,10 +370,15 @@
             if (typeof snake === 'undefined') {
 
             } else {
-                for (let i = 0; i < snake.body.length; i++) {
-                    while (this.x == snake.body[i][0] && this.y == snake.body[i][1]) {
-                        this.x = Math.floor(Math.random() * gridCount);
-                        this.y = Math.floor(Math.random() * gridCount);
+                inSnake = true
+                while (inSnake) {
+                    this.x = Math.floor(Math.random() * gridCount);
+                    this.y = Math.floor(Math.random() * gridCount);
+                    inSnake = false
+                    for (let i = 0; i < snake.body.length; i++) {
+                        if (this.x == snake.body[i][0] && this.y == snake.body[i][1]) {
+                            inSnake = true
+                        }
                     }
                 }
             }
