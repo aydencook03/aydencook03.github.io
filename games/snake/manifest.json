@@ -33,17 +33,41 @@
     ],
     "screenshots": [
         {
-            "src": "./screenshots/main-mobile.png",
-            "sizes": "1080x1920",
+            "src": "./screenshots/mobile-1.png",
+            "sizes": "1080x1919",
             "type": "image/png",
-            "label": "Eat the apple on mobile!"
+            "label": "Start from Humble Beginnings"
         },
         {
-            "src": "./screenshots/main-desktop.png",
+            "src": "./screenshots/mobile-2.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "label": "Keep Eating"
+        },
+        {
+            "src": "./screenshots/mobile-3.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "label": "Survive the Chaos"
+        },
+        {
+            "src": "./screenshots/mobile-4.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "label": "Become the Biggest Snake"
+        },
+        {
+            "src": "./screenshots/mobile-5.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "label": "But Don't Bite Yourself!"
+        },
+        {
+            "src": "./screenshots/desktop-1.png",
             "sizes": "2219x1248",
             "type": "image/png",
             "form_factor": "wide",
-            "label": "Eat the apple on desktop!"
+            "label": "Play on desktop!"
         }
     ],
     "start_url": "./index.html",
