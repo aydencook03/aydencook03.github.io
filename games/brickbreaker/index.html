@@ -4,13 +4,19 @@
 <head>
     <meta charset="UTF-8" />
     <meta name='viewport' content='width=device-width, height=device-height, user-scalable=no, initial-scale=1.0' />
-    
+    <link rel="manifest" href="./manifest.json">
     <link rel="icon" href="./icons/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
     <title>BrickBreaker</title>
     <script type="text/javascript">
         //////////////////////////////////////////////////////////////
         // Event Handling
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('./service-worker.js')
+            });
+        }
 
         window.onload = () => reset();
         document.addEventListener('keydown', keyDown);

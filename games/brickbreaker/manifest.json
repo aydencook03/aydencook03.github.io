@@ -1,0 +1,71 @@
+{
+    "background_color": "#37474f",
+    "dir": "ltr",
+    "display": "fullscreen",
+    "name": "BrickBreaker Game",
+    "orientation": "portrait-primary",
+    "scope": "./",
+    "short_name": "BrickBreaker",
+    "start_url": "./index.html",
+    "theme_color": "#646464",
+    "id": "brickbreaker_game",
+    "description": "A minimalist take on the classic brick-breaker game.",
+    "lang": "en",
+    "categories": [
+        "games"
+    ],
+    "icons": [
+        {
+            "src": "./icons/favicon.ico",
+            "type": "image/x-icon",
+            "sizes": "32x32"
+        },
+        {
+            "src": "./icons/icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "./icons/icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "any"
+        },
+        {
+            "src": "./icons/icon-192-maskable.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "maskable"
+        },
+        {
+            "src": "./icons/icon-512-maskable.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "maskable"
+        },
+        {
+            "src": "./iconsandroid/android-launchericon-512-512.png",
+            "sizes": "512x512"
+        },
+        {
+            "src": "./iconsandroid/android-launchericon-192-192.png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "./iconsandroid/android-launchericon-144-144.png",
+            "sizes": "144x144"
+        },
+        {
+            "src": "./iconsandroid/android-launchericon-96-96.png",
+            "sizes": "96x96"
+        },
+        {
+            "src": "./iconsandroid/android-launchericon-72-72.png",
+            "sizes": "72x72"
+        },
+        {
+            "src": "./iconsandroid/android-launchericon-48-48.png",
+            "sizes": "48x48"
+        }
+    ]
+}
