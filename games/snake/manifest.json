@@ -106,5 +106,12 @@
     "categories": [
         "games"
     ],
-    "description": "A minimalist take on the classic snake game."
+    "description": "A minimalist take on the classic snake game.",
+    "display_override": [
+        "window-controls-overlay",
+        "fullscreen",
+        "standalone",
+        "minimal-ui",
+        "browser"
+    ]
 }
