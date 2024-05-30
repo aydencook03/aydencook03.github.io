@@ -1,8 +1,15 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.affluentialgames.snake",
-        "sha256_cert_fingerprints": ["AA:CD:0B:C2:63:0E:5B:3D:9D:88:B8:CC:D1:C1:80:69:D8:F5:3D:B2:D5:D3:90:E3:78:CD:20:34:0B:F3:37:DC"]
-      }
-    }]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.affluentialgames.snake",
+      "sha256_cert_fingerprints": [
+        "AA:CD:0B:C2:63:0E:5B:3D:9D:88:B8:CC:D1:C1:80:69:D8:F5:3D:B2:D5:D3:90:E3:78:CD:20:34:0B:F3:37:DC",
+        "92:57:30:30:D3:4B:23:AE:5C:68:F8:1D:DE:3F:48:1F:43:75:F8:D6:8A:BE:BC:8C:DD:BE:C8:1E:EC:75:B2:1F"
+      ]
+    }
+  }
+]
