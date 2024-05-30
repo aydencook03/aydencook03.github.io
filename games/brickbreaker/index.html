@@ -423,11 +423,11 @@
             ctx.fillText(`Bricks: ${bricksLeft}`, scale / 2, brickH * 1 * emptyRowCount / 3);
             ctx.fillText(`Lives: ${lives}`, scale / 2, brickH * 2 * emptyRowCount / 3);
 
-            // DISPLAY FPS
+            /* DISPLAY FPS
             ctx.textAlign = 'left';
             ctx.fillText(`FPS: ${Math.round(fps)}`, brickH * 1 * emptyRowCount/3 - ctx.measureText('FPS').actualBoundingBoxAscent, brickH * 1 * emptyRowCount/3);
             ctx.textAlign = 'center';
-            
+            */
 
             const val = scale - (scale - heightDown) / 2;
             if (!running) {
@@ -462,8 +462,8 @@
 
             deltaT = (time - prev) / 1000;
             fps = 1 / deltaT;
-            if (fps < 45) {
-                fps = 45;
+            if (fps < 30) {
+                fps = 30;
             }
             //console.log(fps) //console logs the fps
 
