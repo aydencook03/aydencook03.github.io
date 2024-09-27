@@ -12,7 +12,8 @@
         }
 
         div {
-            width: 25%;
+            width: fit-content;
+            box-sizing: border-box;
             padding: 20px;
             margin: 20px;
             border: 2px solid black;
@@ -57,5 +58,22 @@
         </ul>
     </div>
 </body>
+
+<script>
+    window.addEventListener('load', resize);
+    function resize() {
+        let divs = document.querySelectorAll('body > div');
+        let maxWidth = 0;
+        divs.forEach(function (div) {
+            let width = div.getBoundingClientRect().width;
+            if (width > maxWidth) {
+                maxWidth = width;
+            }
+        });
+        divs.forEach(function (div) {
+            div.style.width = maxWidth + 'px';
+        });
+    }
+</script>
 
 </html>
