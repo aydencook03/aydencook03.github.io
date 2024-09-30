@@ -1,1000 +1,1025 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, height=device-height, user-scalable=no initial-scale=1.0">
     <title>Raycasting</title>
-<script>
+    <script>
 
-////////////////////////////////////////////////
-// Event Handling
+        ////////////////////////////////////////////////
+        // Event Handling
 
-window.onload = function() {reset()}
+        window.onload = function () { reset() }
 
-window.addEventListener('mousedown', mouseDown);
-window.addEventListener('mousemove', mouseMove);
-window.addEventListener('mouseup', mouseUp);
+        window.addEventListener('mousedown', mouseDown);
+        window.addEventListener('mousemove', mouseMove);
+        window.addEventListener('mouseup', mouseUp);
 
-window.addEventListener('touchstart', touchStart);
-window.addEventListener('touchmove', touchMove, {passive: false});
-window.addEventListener('touchend', touchEnd);
+        window.addEventListener('touchstart', touchStart);
+        window.addEventListener('touchmove', touchMove, { passive: false });
+        window.addEventListener('touchend', touchEnd);
 
-window.addEventListener('resize', resize);
+        window.addEventListener('resize', resize);
 
-mouse = {
-    down: false,
-    usingTouch: false,
-    start: {
-        x: null,
-        y: null
-    },
-    current: {
-        x: null,
-        y: null
-    },
-    end: {
-        x: null,
-        y: null
-    }
-}
-
-
-function mouseDown(data) {
-    if(!mouse.usingTouch) {
-        mouse.down = true;
-        mouse.start.x = data.clientX - rect.left;
-        mouse.start.y = cHeight - (data.clientY - rect.top);
-    }
-}
-function mouseMove(data) {
-    if(!mouse.usingTouch) {
-        mouse.current.x = data.clientX - rect.left;
-        mouse.current.y = cHeight - (data.clientY - rect.top);
-
-        player.x = mouse.current.x;
-        player.y = mouse.current.y;
-    }
-}
-function mouseUp(data) {
-    if(!mouse.usingTouch) {
-        mouse.down = false;
-        mouse.end.x = data.clientX - rect.left;
-        mouse.end.y = cHeight - (data.clientY - rect.top);
-
-        if(player.mode == 'draw') {
-            const mag = ((mouse.end.x-mouse.start.x)**2 + (mouse.end.y-mouse.start.y)**2)**0.5;
-            if( mag > boundaryWidth/1 ) {
-                let dirx = (boundaryWidth/1)*((mouse.start.x-mouse.end.x)/mag);
-                let diry = (boundaryWidth/1)*((mouse.start.y-mouse.end.y)/mag);
-                walls.push(new Boundary(mouse.start.x, mouse.start.y, mouse.end.x+dirx, mouse.end.y+diry));
+        mouse = {
+            down: false,
+            usingTouch: false,
+            start: {
+                x: null,
+                y: null
+            },
+            current: {
+                x: null,
+                y: null
+            },
+            end: {
+                x: null,
+                y: null
             }
         }
-        else if(player.mode == 'delete') {
-            let toSplice = [];
-            for(let i = 0; i < walls.length; i++) {
-                if(new Ray(mouse.start.x, mouse.start.y, 0, {color: 'green', width: 2, type: 'deleter'}).setEnd(mouse.current.x, mouse.current.y).cast(walls[i])) {
-                    toSplice.push(i);
+
+
+        function mouseDown(data) {
+            if (!mouse.usingTouch) {
+                mouse.down = true;
+                mouse.start.x = data.clientX - rect.left;
+                mouse.start.y = cHeight - (data.clientY - rect.top);
+            }
+        }
+        function mouseMove(data) {
+            if (!mouse.usingTouch) {
+                mouse.current.x = data.clientX - rect.left;
+                mouse.current.y = cHeight - (data.clientY - rect.top);
+
+                player.x = mouse.current.x;
+                player.y = mouse.current.y;
+            }
+        }
+        function mouseUp(data) {
+            if (!mouse.usingTouch) {
+                mouse.down = false;
+                mouse.end.x = data.clientX - rect.left;
+                mouse.end.y = cHeight - (data.clientY - rect.top);
+
+                if (player.mode == 'draw') {
+                    const mag = ((mouse.end.x - mouse.start.x) ** 2 + (mouse.end.y - mouse.start.y) ** 2) ** 0.5;
+                    if (mag > boundaryWidth / 1) {
+                        let dirx = (boundaryWidth / 1) * ((mouse.start.x - mouse.end.x) / mag);
+                        let diry = (boundaryWidth / 1) * ((mouse.start.y - mouse.end.y) / mag);
+                        walls.push(new Boundary(mouse.start.x, mouse.start.y, mouse.end.x + dirx, mouse.end.y + diry));
+                    }
                 }
-            }
-            for(let i = toSplice.length -1; i >= 0; i--) {
-                const index = toSplice[i];
-                walls.splice(index, 1);
-            }
-        }
-    }
-}
-
-
-function touchStart(data) {
-    mouse.usingTouch = true;
-    mouse.down = true;
-    mouse.start.x = data.touches[0].clientX - rect.left;
-    mouse.start.y = cHeight - (data.touches[0].clientY - rect.top);
-    mouse.current.x = mouse.start.x;
-    mouse.current.y = mouse.start.y;
-}
-function touchMove(data) {
-    const newX = data.touches[0].clientX - rect.left;
-    const newY = cHeight - (data.touches[0].clientY - rect.top);
-
-    if(player.mode == 'move' && !showSettings) {
-        player.x += newX - mouse.current.x;
-        player.y += newY - mouse.current.y;
-
-        if(player.x + player.radius > cWidth) {
-            player.x = cWidth - player.radius;
-        }
-        else if(player.x - player.radius < 0) {
-            player.x = player.radius;
-        }
-        if(player.y + player.radius > cHeight) {
-            player.y = cHeight - player.radius;
-        }
-        else if(player.y - player.radius < 0) {
-            player.y = player.radius;
-        }
-    }
-
-    mouse.current.x = newX;
-    mouse.current.y = newY;
-    if(!showSettings) {
-        data.preventDefault();
-    }
-}
-function touchEnd() {
-    mouse.down = false;
-    mouse.end.x = mouse.current.x;
-    mouse.end.y = mouse.current.y;
-
-    if(player.mode == 'draw') {
-        const mag = ((mouse.end.x-mouse.start.x)**2 + (mouse.end.y-mouse.start.y)**2)**0.5;
-        if( mag > boundaryWidth/1 ) {
-            let dirx = (boundaryWidth/1)*((mouse.start.x-mouse.end.x)/mag);
-            let diry = (boundaryWidth/1)*((mouse.start.y-mouse.end.y)/mag);
-            walls.push(new Boundary(mouse.start.x, mouse.start.y, mouse.end.x+dirx, mouse.end.y+diry));
-        }
-    }
-    else if(player.mode == 'delete') {
-        let toSplice = [];
-        for(let i = 0; i < walls.length; i++) {
-            if(new Ray(mouse.start.x, mouse.start.y, 0, {color: 'green', width: 2, type: 'deleter'}).setEnd(mouse.current.x, mouse.current.y).cast(walls[i])) {
-                toSplice.push(i);
-            }
-        }
-        for(let i = toSplice.length -1; i >= 0; i--) {
-            const index = toSplice[i];
-            walls.splice(index, 1);
-        }
-    }
-}
-
-
-function resize() {
-    scale = Math.min(window.innerWidth, window.innerHeight);
-    ratio = window.devicePixelRatio || 1;
-
-    cWidth = window.innerWidth;
-    cHeight = window.innerHeight;
-
-    document.getElementById('viewSlider').max = Math.max(cWidth, cHeight)*1.1;
-    document.getElementById('viewSlider').value = Math.max(cWidth, cHeight)*1.1;
-
-    canvas.style.width = `${cWidth}px`;
-    canvas.style.height = `${cHeight}px`;
-    canvas.width = cWidth * ratio;
-    canvas.height = cHeight * ratio;
-    ctx.scale(ratio, ratio);
-
-    rect = canvas.getBoundingClientRect();
-}
-
-////////////////////////////////////////////////
-// Initialization
-
-function reset() {
-    canvas = document.getElementById('canvas');
-    settingsDiv = document.getElementsByClassName('settings')[0];
-    ctx = canvas.getContext('2d');
-
-    resize();
-    mouse.usingTouch = false;
-
-
-    // looks
-    canvas.color = 'black';
-    showSettings = false;
-    
-    boundaryColor = 'crimson';
-    boundaryWidth = 3;
-
-    rayColor = 'rgba(255, 255, 255, 0.6)';
-    rayWidth = 0.2;
-
-    particleColor = 'white';
-    particleRadius = 5;
-    particleRayCount = 1080;
-    particleViewStyle = 'mixed'; // 'pure', 'mixed', 'shaded'
-    particleViewRange = null;
-    
-    wallCount = 10;
-
-
-    if(window.innerWidth > window.innerHeight) {
-        particleViewRange = Math.min(cWidth, cHeight) / 2;
-        walls = [
-            new Boundary(cWidth * 0.277, cHeight * 0.448, cWidth * 0.277, cHeight * 0.442),
-            new Boundary(cWidth * 0.315, cHeight * 0.745, cWidth * 0.316, cHeight * 0.747),
-            new Boundary(cWidth * 0.321, cHeight * 0.61, cWidth * 0.327, cHeight * 0.595),
-            new Boundary(cWidth * 0.374, cHeight * 0.682, cWidth * 0.365, cHeight * 0.701),
-            new Boundary(cWidth * 0.383, cHeight * 0.525, cWidth * 0.388, cHeight * 0.534),
-            new Boundary(cWidth * 0.311, cHeight * 0.522, cWidth * 0.325, cHeight * 0.542),
-            new Boundary(cWidth * 0.42, cHeight * 0.804, cWidth * 0.422, cHeight * 0.804),
-            new Boundary(cWidth * 0.368, cHeight * 0.757, cWidth * 0.377, cHeight * 0.784),
-            new Boundary(cWidth * 0.416, cHeight * 0.755, cWidth * 0.416, cHeight * 0.751),
-            new Boundary(cWidth * 0.527, cHeight * 0.782, cWidth * 0.53, cHeight * 0.793),
-            new Boundary(cWidth * 0.459, cHeight * 0.704, cWidth * 0.463, cHeight * 0.7),
-            new Boundary(cWidth * 0.449, cHeight * 0.519, cWidth * 0.453, cHeight * 0.52),
-            new Boundary(cWidth * 0.438, cHeight * 0.589, cWidth * 0.423, cHeight * 0.594),
-            new Boundary(cWidth * 0.556, cHeight * 0.541, cWidth * 0.559, cHeight * 0.551),
-            new Boundary(cWidth * 0.505, cHeight * 0.505, cWidth * 0.517, cHeight * 0.492),
-            new Boundary(cWidth * 0.519, cHeight * 0.622, cWidth * 0.526, cHeight * 0.633),
-            new Boundary(cWidth * 0.532, cHeight * 0.724, cWidth * 0.538, cHeight * 0.716),
-            new Boundary(cWidth * 0.569, cHeight * 0.796, cWidth * 0.577, cHeight * 0.797),
-            new Boundary(cWidth * 0.594, cHeight * 0.69, cWidth * 0.594, cHeight * 0.674),
-            new Boundary(cWidth * 0.6, cHeight * 0.597, cWidth * 0.6, cHeight * 0.583),
-            new Boundary(cWidth * 0.63, cHeight * 0.513, cWidth * 0.642, cHeight * 0.517),
-            new Boundary(cWidth * 0.696, cHeight * 0.519, cWidth * 0.699, cHeight * 0.533),
-            new Boundary(cWidth * 0.636, cHeight * 0.583, cWidth * 0.646, cHeight * 0.578),
-            new Boundary(cWidth * 0.665, cHeight * 0.666, cWidth * 0.659, cHeight * 0.675),
-            new Boundary(cWidth * 0.641, cHeight * 0.751, cWidth * 0.642, cHeight * 0.737),
-            new Boundary(cWidth * 0.559, cHeight * 0.745, cWidth * 0.568, cHeight * 0.745),
-            new Boundary(cWidth * 0.634, cHeight * 0.835, cWidth * 0.646, cHeight * 0.831),
-            new Boundary(cWidth * 0.68, cHeight * 0.788, cWidth * 0.68, cHeight * 0.779),
-            new Boundary(cWidth * 0.69, cHeight * 0.713, cWidth * 0.692, cHeight * 0.7),
-            new Boundary(cWidth * 0.703, cHeight * 0.608, cWidth * 0.707, cHeight * 0.591),
-            new Boundary(cWidth * 0.194, cHeight * 0.881, cWidth * 0.166, cHeight * 0.335),
-            new Boundary(cWidth * 0.165, cHeight * 0.337, cWidth * 0.776, cHeight * 0.36),
-            new Boundary(cWidth * 0.775, cHeight * 0.361, cWidth * 0.771, cHeight * 0.929),
-            new Boundary(cWidth * 0.774, cHeight * 0.928, cWidth * 0.195, cHeight * 0.881),
-            new Boundary(cWidth * 0.246, cHeight * 0.765, cWidth * 0.297, cHeight * 0.844),
-            new Boundary(cWidth * 0.208, cHeight * 0.624, cWidth * 0.254, cHeight * 0.471),
-            new Boundary(cWidth * 0.231, cHeight * 0.386, cWidth * 0.231, cHeight * 0.492),
-            new Boundary(cWidth * 0.624, cHeight * 0.401, cWidth * 0.713, cHeight * 0.466),
-            new Boundary(cWidth * 0.701, cHeight * 0.834, cWidth * 0.743, cHeight * 0.728),
-            new Boundary(cWidth * 0.4, cHeight * 0.85, cWidth * 0.49, cHeight * 0.884),
-            new Boundary(cWidth * 0.551, cHeight * 0.881, cWidth * 0.552, cHeight * 0.843),
-            new Boundary(cWidth * 0.551, cHeight * 0.857, cWidth * 0.512, cHeight * 0.88),
-            new Boundary(cWidth * 0.428, cHeight * 0.862, cWidth * 0.397, cHeight * 0.897),
-            new Boundary(cWidth * 0.326, cHeight * 0.346, cWidth * 0.277, cHeight * 0.441),
-            new Boundary(cWidth * 0.229, cHeight * 0.669, cWidth * 0.286, cHeight * 0.659),
-            new Boundary(cWidth * 0.327, cHeight * 0.657, cWidth * 0.351, cHeight * 0.617),
-            new Boundary(cWidth * 0.269, cHeight * 0.174, cWidth * 0.399, cHeight * 0.111),
-            new Boundary(cWidth * 0.188, cHeight * 0.263, cWidth * 0.166, cHeight * 0.133),
-            new Boundary(cWidth * 0.61, cHeight * 0.252, cWidth * 0.698, cHeight * 0.155),
-            new Boundary(cWidth * 0.547, cHeight * 0.31, cWidth * 0.537, cHeight * 0.166),
-            new Boundary(cWidth * 0.935, cHeight * 0.538, cWidth * 0.652, cHeight * 0.317),
-            new Boundary(cWidth * 0.739, cHeight * 0.661, cWidth * 0.884, cHeight * 0.707),
-            new Boundary(cWidth * 0.872, cHeight * 0.636, cWidth * 0.838, cHeight * 0.821),
-            new Boundary(cWidth * 0.881, cHeight * 0.917, cWidth * 0.962, cHeight * 0.733),
-            new Boundary(cWidth * 0.884, cHeight * 0.782, cWidth * 0.953, cHeight * 0.946),
-            new Boundary(cWidth * 0.442, cHeight * 0.984, cWidth * 0.217, cHeight * 0.91),
-            new Boundary(cWidth * 0.192, cHeight * 0.992, cWidth * 0.371, cHeight * 0.912),
-            new Boundary(cWidth * 0.057, cHeight * 0.81, cWidth * 0.142, cHeight * 0.724),
-            new Boundary(cWidth * 0.14, cHeight * 0.826, cWidth * 0.072, cHeight * 0.481),
-            new Boundary(cWidth * 0.037, cHeight * 0.282, cWidth * 0.097, cHeight * 0.461),
-            new Boundary(cWidth * 0.137, cHeight * 0.255, cWidth * 0.022, cHeight * 0.136),
-            new Boundary(cWidth * 0.534, cHeight * 0.114, cWidth * 0.824, cHeight * 0.083),
-            new Boundary(cWidth * 0.873, cHeight * 0.168, cWidth * 0.909, cHeight * 0.373),
-            new Boundary(cWidth * 0.271, cHeight * 0.174, cWidth * 0.266, cHeight * 0.072),
-            new Boundary(cWidth * 0.163, cHeight * 0.13, cWidth * 0.263, cHeight * 0.046),
-            new Boundary(cWidth * 0.085, cHeight * 0.549, cWidth * 0.002, cHeight * 0.678),
-            new Boundary(cWidth * 0.404, cHeight * 0.406, cWidth * 0.666, cHeight * 0.075),
-            new Boundary(cWidth * 0.339, cHeight * 0.251, cWidth * 0.605, cHeight * 0.077),
-            new Boundary(cWidth * 0.54, cHeight * 0.997, cWidth * 0.781, cHeight * 0.851),
-        ];
-    } else {
-        particleViewRange = 340;
-        walls = [
-        new Boundary(cWidth * 0.684, cHeight * 0.753, cWidth * 0.824, cHeight * 0.705),
-        new Boundary(cWidth * 0.691, cHeight * 0.615, cWidth * 0.683, cHeight * 0.628),
-        new Boundary(cWidth * 0.221, cHeight * 0.771, cWidth * 0.253, cHeight * 0.769),
-        new Boundary(cWidth * 0.246, cHeight * 0.641, cWidth * 0.272, cHeight * 0.651),
-        new Boundary(cWidth * 0.096, cHeight * 0.591, cWidth * 0.14, cHeight * 0.511),
-        new Boundary(cWidth * 0.203, cHeight * 0.376, cWidth * 0.203, cHeight * 0.332),
-        new Boundary(cWidth * 0.331, cHeight * 0.299, cWidth * 0.364, cHeight * 0.294),
-        new Boundary(cWidth * 0.253, cHeight * 0.203, cWidth * 0.397, cHeight * 0.128),
-        new Boundary(cWidth * 0.652, cHeight * 0.213, cWidth * 0.784, cHeight * 0.243),
-        new Boundary(cWidth * 0.816, cHeight * 0.366, cWidth * 0.802, cHeight * 0.306),
-        new Boundary(cWidth * 0.794, cHeight * 0.552, cWidth * 0.876, cHeight * 0.471),
-    ];
-    }
-
-    rays = [];
-    particles = [
-        new Particle()
-    ];
-
-    player = particles[0];
-
-    //randomizeWalls();
-
-    document.getElementById('colorPicker').value = '#ffffff';
-    document.getElementById('wallColorPicker').value = '#DC143C';
-    document.getElementById('mode').innerHTML = 'Move';
-
-    document.getElementById('raySlider').value = particleRayCount;
-    document.getElementById('angleSlider').value = 180;
-    document.getElementById('directionSlider').value = 0;
-    document.getElementById('rayWidthSlider').value = rayWidth;
-    document.getElementById('wallWidthSlider').value = boundaryWidth;
-
-    document.getElementById('viewSlider').max = Math.max(cWidth, cHeight)*1.1;
-    document.getElementById('viewSlider').value = particleViewRange || Math.max(cWidth, cHeight)*1.1;
-
-    viewAngleFunc();
-    viewSliderFunc();
-    raySliderFunc();
-    changeRayWidth();
-    changeWallWidth();
-
-    if(settingsDiv.style.display == 'flex') {
-        showSettings = true;
-    }
-
-
-    fps = 60;
-
-    if(typeof loop !== 'undefined') {
-        clearInterval(loop);
-    }
-
-    loop = setInterval(main, 1000/fps);
-}
-
-
-function randomizeWalls() {
-    walls = [];
-    for(let i = 0; i < wallCount; i++) {
-        walls.push(new Boundary(Math.random()*cWidth, Math.random()*cHeight, Math.random()*cWidth, Math.random()*cHeight));
-    }
-}
-
-////////////////////////////////////////////////
-// Ray Object Type
-
-function Ray(x, y, angle, params) {
-
-    if(typeof params === 'undefined') {
-        params = {};
-    }
-
-    this.x = x;
-    this.y = y;
-    this.angle = angle; //radians
-
-    this.range = params.range || Math.max(cWidth, cHeight) * 2;
-    this.color = params.color || rayColor;
-    this.width = params.width || rayWidth;
-    this.active = params.active || true;
-    this.deletable = params.deletable || false;
-
-    this.length = this.range; // implementation detail
-    this.type = params.type || 'normal'; // used for delete mode
-}
-
-Ray.prototype.draw = function() {
-    if(this.deletable) {
-        this.active = false;
-    }
-
-    if(this.active) {
-        ctx.beginPath();
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = this.width;
-        ctx.lineCap = "round";
-        ctx.moveTo(this.x, cHeight - this.y);
-        ctx.lineTo(this.x + this.length*Math.cos(this.angle), cHeight - (this.y + this.length*Math.sin(this.angle)));
-        ctx.stroke();
-        ctx.closePath();
-    }
-
-    this.length = this.range;
-}
-
-Ray.prototype.cast = function(wall) {
-    if(this.active) {
-
-        // wall: {
-        //     start: {
-        //         x: number,
-        //         y: number
-        //     },
-        //     end {
-        //         x: number,
-        //         y: number
-        //     },
-        //     width: number
-        // }
-
-        // prevent slopes of infinity and of zero
-        if(this.angle == 0 || this.angle == Math.PI/2 || this.angle == Math.PI || this.angle == 3*Math.PI/2 || this.angle == 2*Math.PI) {
-            this.angle += 0.00001;
-        }
-        if(wall.start.x == wall.end.x) {
-            wall.end.x += 0.00001;
-        }
-        if(wall.start.y == wall.end.y) {
-            wall.end.y += 0.00001;
-        }
-
-        let x1w = null;
-        let y1w = null;
-        let x2w = null;
-        let y2w = null;
-
-        if(wall.start.x < wall.end.x) {
-            x1w = wall.start.x;
-            x2w = wall.end.x;
-            y1w = wall.start.y;
-            y2w = wall.end.y;
-        } else {
-            x1w = wall.end.x;
-            x2w = wall.start.x;
-            y1w = wall.end.y;
-            y2w = wall.start.y;
-        }
-
-        let x1r = null;
-        let y1r = null;
-        let x2r = null;
-        let y2r = null;
-
-        if(this.x < (this.x + this.length*Math.cos(this.angle))) {
-            x1r = this.x;
-            y1r = this.y;
-            x2r = this.x + this.length*Math.cos(this.angle);
-            y2r = this.y + this.length*Math.sin(this.angle);
-        } else {
-            x1r = this.x + this.length*Math.cos(this.angle);
-            x2r = this.x;
-            y1r = this.y + this.length*Math.sin(this.angle);
-            y2r = this.y;
-        }
-
-        let slopeW = (y2w - y1w)/(x2w - x1w);
-        let slopeR = (y2r - y1r)/(x2r - x1r);
-
-        const xc = ((y1r-(slopeR*x1r))-(y1w-(slopeW*x1w)))/(slopeW-slopeR) || null;
-        const yc = (slopeW*xc) + (y1w - (slopeW*x1w)) || null;
-
-        if(xc >= x1r && xc <= x2r &&
-            xc >= x1w - wall.width/2 && xc <= x2w + wall.width/2 &&
-            yc >= Math.min(y1r, y2r) && yc <= Math.max(y1r, y2r) &&
-            yc >= Math.min(y1w, y2w) - wall.width/2 && yc <= Math.max(y1w, y2w) + wall.width/2) {
-                if(this.type == 'normal') {
-                    this.setEnd(xc, yc);
-                    return {x: xc, y: yc};
-                }
-                else if(this.type == 'deleter') {
-                    return true;
-                }
-        }
-    }
-}
-
-Ray.prototype.setEnd = function(x, y) {
-    this.angle = Math.atan2(y - this.y, x - this.x);
-    this.length = ((x - this.x)**2 + (y - this.y)**2)**0.5;
-    return this;
-}
-
-Ray.prototype.lookAt = function(x, y) {
-    this.angle = Math.atan2(y - this.y, x - this.x);
-}
-
-////////////////////////////////////////////////
-// Boundary Object Type
-
-function Boundary(x1, y1, x2, y2, params) {
-
-    if(typeof params === 'undefined') {
-        params = {};
-    }
-
-    this.start = { x: x1, y: y1 };
-    this.end = { x: x2, y: y2 };
-
-    this.xV = params.xV || 0;
-    this.yV = params.yV || 0;
-
-    this.color = params.color || boundaryColor;
-    this.width = params.width || boundaryWidth;
-    this.visible = params.visible || true;
-}
-
-Boundary.prototype.draw = function() {
-    if(this.xV) {
-        this.start.x += this.xV/fps;
-        this.end.x += this.xV/fps;
-    }
-    if(this.yV) {
-        this.start.y += this.yV/fps;
-        this.end.y += this.yV/fps;
-    }
-
-    if(this.visible) {
-        ctx.beginPath();
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = this.width;
-        ctx.lineCap = "round";
-        ctx.moveTo(this.start.x, cHeight - this.start.y);
-        ctx.lineTo(this.end.x, cHeight - this.end.y);
-        ctx.stroke();
-        ctx.closePath();
-    }
-}
-
-////////////////////////////////////////////////
-// Particle Object Type
-
-function Particle(params) {
-
-    if(typeof params === 'undefined') {
-        params = {};
-    }
-
-    // particle variables
-    this.x = params.x || cWidth/2;
-    this.y = params.y || cHeight/2;
-    this.radius = params.radius || particleRadius;
-    this.color = params.color || particleColor;
-
-    // has a 'move' around, a 'draw' wall, and a 'delete' wall mode
-    this.mode = params.mode || 'move';
-
-    // particle's 'flashlight' variables
-    this.start = params.start || 0; // starting angle of view (degrees)
-    this.stop = params.stop || 360;
-    this.rayCount = params.rayCount || particleRayCount;
-    this.rayColor = params.rayColor || rayColor;
-    this.rayWidth = params.rayWidth || rayWidth;
-    this.emitting = params.emitting || true;
-    this.viewRange = params.viewRange || particleViewRange;
-
-    this.viewStyle = params.viewStyle || particleViewStyle;
-
-
-    // implementation details
-    this.ownedRays = []; // list of indexes of rays owned by the particle
-    this.prev = null; // used to detect change in rayCount in this.glow()   
-}
-
-Particle.prototype.glow = function() {
-
-    if(this.emitting && this.viewStyle == 'shaded') {
-        let grd = ctx.createRadialGradient(this.x, cHeight - this.y, this.radius, this.x, cHeight - this.y, this.viewRange);
-        grd.addColorStop(0, this.rayColor);
-        grd.addColorStop(1, canvas.color);
-        ctx.beginPath();
-        ctx.fillStyle = grd;
-        for(let index of this.ownedRays) {
-            const ray = rays[index];
-            for(let wall of walls) {
-                ray.cast(wall);
-            }
-            ctx.lineTo(ray.x + ray.length*Math.cos(ray.angle), cHeight - (ray.y + ray.length*Math.sin(ray.angle)));
-        }
-        ctx.fill();
-        ctx.closePath();
-    }
-
-    if(this.rayCount != this.prev) {
-        if(this.rayCount > this.prev) {
-            let leftToAdd = this.rayCount - this.prev;
-            for(let i = 0; i < rays.length; i++) {
-                if(rays[i].deletable && leftToAdd > 0) {
-                    this.ownedRays.push(i);
-                    leftToAdd -= 1;
-                }
-            }
-
-            for(let i = 0; i < leftToAdd; i++) {
-                const index = rays.push(null) -1;
-                this.ownedRays.push(index);
-            }
-        } 
-        else {
-            let leftToRemove = this.prev - this.rayCount;
-            for(let i = this.ownedRays.length -1; i >= 0; i--) {
-                if(this.ownedRays[i] == rays.length-1 && leftToRemove > 0) {
-                    rays.splice(this.ownedRays[i], 1);
-                    this.ownedRays.splice(i, 1);
-                    leftToRemove -= 1;
-                }
-                else if(this.ownedRays[i] != rays.length-1 && leftToRemove >0) {
-                    rays[this.ownedRays[i]].deletable = true;
-                    this.ownedRays.splice(i, 1);
-                    leftToRemove -= 1;
+                else if (player.mode == 'delete') {
+                    let toSplice = [];
+                    for (let i = 0; i < walls.length; i++) {
+                        if (new Ray(mouse.start.x, mouse.start.y, 0, { color: 'green', width: 2, type: 'deleter' }).setEnd(mouse.current.x, mouse.current.y).cast(walls[i])) {
+                            toSplice.push(i);
+                        }
+                    }
+                    for (let i = toSplice.length - 1; i >= 0; i--) {
+                        const index = toSplice[i];
+                        walls.splice(index, 1);
+                    }
                 }
             }
         }
-        this.prev = this.rayCount;
-    }
-    
-    // draw particle (circle)
-    ctx.beginPath();
-    ctx.fillStyle = this.color;
-    ctx.arc(this.x, cHeight - this.y, this.radius, 0, Math.PI*2, true);
-    ctx.fill();
-    ctx.closePath();
 
-    if(this.emitting) {
-        let count = 0;
-        for(let i of this.ownedRays) {
-            const start = this.start;
-            const end = this.stop;
-            let color = this.rayColor;
-            if(this.prev == this.rayCount) {
 
-                if(this.viewStyle == 'mixed') {
-                    let grd = ctx.createRadialGradient(this.x, cHeight - this.y, this.radius, this.x, cHeight - this.y, this.viewRange);
-                    grd.addColorStop(0, this.rayColor);
-                    grd.addColorStop(1, canvas.color);
-                    color = grd;
+        function touchStart(data) {
+            mouse.usingTouch = true;
+            mouse.down = true;
+            mouse.start.x = data.touches[0].clientX - rect.left;
+            mouse.start.y = cHeight - (data.touches[0].clientY - rect.top);
+            mouse.current.x = mouse.start.x;
+            mouse.current.y = mouse.start.y;
+        }
+        function touchMove(data) {
+            const newX = data.touches[0].clientX - rect.left;
+            const newY = cHeight - (data.touches[0].clientY - rect.top);
+
+            if (player.mode == 'move' && !showSettings) {
+                player.x += newX - mouse.current.x;
+                player.y += newY - mouse.current.y;
+
+                if (player.x + player.radius > cWidth) {
+                    player.x = cWidth - player.radius;
                 }
-                else if(this.viewStyle == 'shaded') {
-                    color = 'rgba(0,0,0,0)';
+                else if (player.x - player.radius < 0) {
+                    player.x = player.radius;
                 }
-
-                rays[i] = new Ray(this.x, this.y, (start + ((end-start)/this.ownedRays.length)*count) * Math.PI/180, {color: color, width: this.rayWidth, range: this.viewRange});
-                rays[i].active = true;
+                if (player.y + player.radius > cHeight) {
+                    player.y = cHeight - player.radius;
+                }
+                else if (player.y - player.radius < 0) {
+                    player.y = player.radius;
+                }
             }
-            count++;
+
+            mouse.current.x = newX;
+            mouse.current.y = newY;
+            if (!showSettings) {
+                data.preventDefault();
+            }
         }
-    } else {
-        for(let i of this.ownedRays) {
-            rays[i].active = false;
+        function touchEnd() {
+            mouse.down = false;
+            mouse.end.x = mouse.current.x;
+            mouse.end.y = mouse.current.y;
+
+            if (player.mode == 'draw') {
+                const mag = ((mouse.end.x - mouse.start.x) ** 2 + (mouse.end.y - mouse.start.y) ** 2) ** 0.5;
+                if (mag > boundaryWidth / 1) {
+                    let dirx = (boundaryWidth / 1) * ((mouse.start.x - mouse.end.x) / mag);
+                    let diry = (boundaryWidth / 1) * ((mouse.start.y - mouse.end.y) / mag);
+                    walls.push(new Boundary(mouse.start.x, mouse.start.y, mouse.end.x + dirx, mouse.end.y + diry));
+                }
+            }
+            else if (player.mode == 'delete') {
+                let toSplice = [];
+                for (let i = 0; i < walls.length; i++) {
+                    if (new Ray(mouse.start.x, mouse.start.y, 0, { color: 'green', width: 2, type: 'deleter' }).setEnd(mouse.current.x, mouse.current.y).cast(walls[i])) {
+                        toSplice.push(i);
+                    }
+                }
+                for (let i = toSplice.length - 1; i >= 0; i--) {
+                    const index = toSplice[i];
+                    walls.splice(index, 1);
+                }
+            }
         }
-    }
 
-    this.prev = this.rayCount;
-}
 
-////////////////////////////////////////////////
-// Logic
+        function resize() {
+            scale = Math.min(window.innerWidth, window.innerHeight);
+            ratio = window.devicePixelRatio || 1;
 
-function drawWalls() {
-    for(let wall of walls) {
-        wall.draw();
-    }
-}
+            cWidth = window.innerWidth;
+            cHeight = window.innerHeight;
 
-function sendRays() {
- 
-    for(let ray of rays) {
+            document.getElementById('viewSlider').max = Math.max(cWidth, cHeight) * 1.1;
+            document.getElementById('viewSlider').value = Math.max(cWidth, cHeight) * 1.1;
 
-        for(let wall of walls) {
-            ray.cast(wall);
+            canvas.style.width = `${cWidth}px`;
+            canvas.style.height = `${cHeight}px`;
+            canvas.width = cWidth * ratio;
+            canvas.height = cHeight * ratio;
+            ctx.scale(ratio, ratio);
+
+            rect = canvas.getBoundingClientRect();
         }
 
-        ray.draw();
-    }
-}
+        ////////////////////////////////////////////////
+        // Initialization
 
-function handleParticles() {
-    for(let part of particles) {
-        part.glow();
-    }
-}
+        function reset() {
+            canvas = document.getElementById('canvas');
+            settingsDiv = document.getElementsByClassName('settings')[0];
+            ctx = canvas.getContext('2d');
 
-function checkUserInput() {
-    if(player.mode == 'draw' && mouse.down) {
-        let mag = ((mouse.current.x-mouse.start.x)**2 + (mouse.current.y-mouse.start.y)**2)**0.5;
-        let dirx = (boundaryWidth/1)*((mouse.start.x-mouse.current.x)/mag);
-        let diry = (boundaryWidth/1)*((mouse.start.y-mouse.current.y)/mag);
-        if(mag > boundaryWidth/1) {
-            new Boundary(mouse.start.x, mouse.start.y, mouse.current.x+dirx, mouse.current.y+diry).draw();
-        } else {
-            new Boundary(mouse.start.x, mouse.start.y, mouse.start.x, mouse.start.y).draw();
+            resize();
+            mouse.usingTouch = false;
+
+
+            // looks
+            canvas.color = 'black';
+            showSettings = false;
+
+            boundaryColor = 'crimson';
+            boundaryWidth = 3;
+
+            rayColor = 'rgba(255, 255, 255, 0.6)';
+            rayWidth = 0.2;
+
+            particleColor = 'white';
+            particleRadius = 5;
+            particleRayCount = 1080;
+            particleViewStyle = 'mixed'; // 'pure', 'mixed', 'shaded'
+            particleViewRange = null;
+
+            wallCount = 10;
+
+
+            if (window.innerWidth > window.innerHeight) {
+                particleViewRange = Math.min(cWidth, cHeight) / 2;
+                walls = [
+                    new Boundary(cWidth * 0.277, cHeight * 0.448, cWidth * 0.277, cHeight * 0.442),
+                    new Boundary(cWidth * 0.315, cHeight * 0.745, cWidth * 0.316, cHeight * 0.747),
+                    new Boundary(cWidth * 0.321, cHeight * 0.61, cWidth * 0.327, cHeight * 0.595),
+                    new Boundary(cWidth * 0.374, cHeight * 0.682, cWidth * 0.365, cHeight * 0.701),
+                    new Boundary(cWidth * 0.383, cHeight * 0.525, cWidth * 0.388, cHeight * 0.534),
+                    new Boundary(cWidth * 0.311, cHeight * 0.522, cWidth * 0.325, cHeight * 0.542),
+                    new Boundary(cWidth * 0.42, cHeight * 0.804, cWidth * 0.422, cHeight * 0.804),
+                    new Boundary(cWidth * 0.368, cHeight * 0.757, cWidth * 0.377, cHeight * 0.784),
+                    new Boundary(cWidth * 0.416, cHeight * 0.755, cWidth * 0.416, cHeight * 0.751),
+                    new Boundary(cWidth * 0.527, cHeight * 0.782, cWidth * 0.53, cHeight * 0.793),
+                    new Boundary(cWidth * 0.459, cHeight * 0.704, cWidth * 0.463, cHeight * 0.7),
+                    new Boundary(cWidth * 0.449, cHeight * 0.519, cWidth * 0.453, cHeight * 0.52),
+                    new Boundary(cWidth * 0.438, cHeight * 0.589, cWidth * 0.423, cHeight * 0.594),
+                    new Boundary(cWidth * 0.556, cHeight * 0.541, cWidth * 0.559, cHeight * 0.551),
+                    new Boundary(cWidth * 0.505, cHeight * 0.505, cWidth * 0.517, cHeight * 0.492),
+                    new Boundary(cWidth * 0.519, cHeight * 0.622, cWidth * 0.526, cHeight * 0.633),
+                    new Boundary(cWidth * 0.532, cHeight * 0.724, cWidth * 0.538, cHeight * 0.716),
+                    new Boundary(cWidth * 0.569, cHeight * 0.796, cWidth * 0.577, cHeight * 0.797),
+                    new Boundary(cWidth * 0.594, cHeight * 0.69, cWidth * 0.594, cHeight * 0.674),
+                    new Boundary(cWidth * 0.6, cHeight * 0.597, cWidth * 0.6, cHeight * 0.583),
+                    new Boundary(cWidth * 0.63, cHeight * 0.513, cWidth * 0.642, cHeight * 0.517),
+                    new Boundary(cWidth * 0.696, cHeight * 0.519, cWidth * 0.699, cHeight * 0.533),
+                    new Boundary(cWidth * 0.636, cHeight * 0.583, cWidth * 0.646, cHeight * 0.578),
+                    new Boundary(cWidth * 0.665, cHeight * 0.666, cWidth * 0.659, cHeight * 0.675),
+                    new Boundary(cWidth * 0.641, cHeight * 0.751, cWidth * 0.642, cHeight * 0.737),
+                    new Boundary(cWidth * 0.559, cHeight * 0.745, cWidth * 0.568, cHeight * 0.745),
+                    new Boundary(cWidth * 0.634, cHeight * 0.835, cWidth * 0.646, cHeight * 0.831),
+                    new Boundary(cWidth * 0.68, cHeight * 0.788, cWidth * 0.68, cHeight * 0.779),
+                    new Boundary(cWidth * 0.69, cHeight * 0.713, cWidth * 0.692, cHeight * 0.7),
+                    new Boundary(cWidth * 0.703, cHeight * 0.608, cWidth * 0.707, cHeight * 0.591),
+                    new Boundary(cWidth * 0.194, cHeight * 0.881, cWidth * 0.166, cHeight * 0.335),
+                    new Boundary(cWidth * 0.165, cHeight * 0.337, cWidth * 0.776, cHeight * 0.36),
+                    new Boundary(cWidth * 0.775, cHeight * 0.361, cWidth * 0.771, cHeight * 0.929),
+                    new Boundary(cWidth * 0.774, cHeight * 0.928, cWidth * 0.195, cHeight * 0.881),
+                    new Boundary(cWidth * 0.246, cHeight * 0.765, cWidth * 0.297, cHeight * 0.844),
+                    new Boundary(cWidth * 0.208, cHeight * 0.624, cWidth * 0.254, cHeight * 0.471),
+                    new Boundary(cWidth * 0.231, cHeight * 0.386, cWidth * 0.231, cHeight * 0.492),
+                    new Boundary(cWidth * 0.624, cHeight * 0.401, cWidth * 0.713, cHeight * 0.466),
+                    new Boundary(cWidth * 0.701, cHeight * 0.834, cWidth * 0.743, cHeight * 0.728),
+                    new Boundary(cWidth * 0.4, cHeight * 0.85, cWidth * 0.49, cHeight * 0.884),
+                    new Boundary(cWidth * 0.551, cHeight * 0.881, cWidth * 0.552, cHeight * 0.843),
+                    new Boundary(cWidth * 0.551, cHeight * 0.857, cWidth * 0.512, cHeight * 0.88),
+                    new Boundary(cWidth * 0.428, cHeight * 0.862, cWidth * 0.397, cHeight * 0.897),
+                    new Boundary(cWidth * 0.326, cHeight * 0.346, cWidth * 0.277, cHeight * 0.441),
+                    new Boundary(cWidth * 0.229, cHeight * 0.669, cWidth * 0.286, cHeight * 0.659),
+                    new Boundary(cWidth * 0.327, cHeight * 0.657, cWidth * 0.351, cHeight * 0.617),
+                    new Boundary(cWidth * 0.269, cHeight * 0.174, cWidth * 0.399, cHeight * 0.111),
+                    new Boundary(cWidth * 0.188, cHeight * 0.263, cWidth * 0.166, cHeight * 0.133),
+                    new Boundary(cWidth * 0.61, cHeight * 0.252, cWidth * 0.698, cHeight * 0.155),
+                    new Boundary(cWidth * 0.547, cHeight * 0.31, cWidth * 0.537, cHeight * 0.166),
+                    new Boundary(cWidth * 0.935, cHeight * 0.538, cWidth * 0.652, cHeight * 0.317),
+                    new Boundary(cWidth * 0.739, cHeight * 0.661, cWidth * 0.884, cHeight * 0.707),
+                    new Boundary(cWidth * 0.872, cHeight * 0.636, cWidth * 0.838, cHeight * 0.821),
+                    new Boundary(cWidth * 0.881, cHeight * 0.917, cWidth * 0.962, cHeight * 0.733),
+                    new Boundary(cWidth * 0.884, cHeight * 0.782, cWidth * 0.953, cHeight * 0.946),
+                    new Boundary(cWidth * 0.442, cHeight * 0.984, cWidth * 0.217, cHeight * 0.91),
+                    new Boundary(cWidth * 0.192, cHeight * 0.992, cWidth * 0.371, cHeight * 0.912),
+                    new Boundary(cWidth * 0.057, cHeight * 0.81, cWidth * 0.142, cHeight * 0.724),
+                    new Boundary(cWidth * 0.14, cHeight * 0.826, cWidth * 0.072, cHeight * 0.481),
+                    new Boundary(cWidth * 0.037, cHeight * 0.282, cWidth * 0.097, cHeight * 0.461),
+                    new Boundary(cWidth * 0.137, cHeight * 0.255, cWidth * 0.022, cHeight * 0.136),
+                    new Boundary(cWidth * 0.534, cHeight * 0.114, cWidth * 0.824, cHeight * 0.083),
+                    new Boundary(cWidth * 0.873, cHeight * 0.168, cWidth * 0.909, cHeight * 0.373),
+                    new Boundary(cWidth * 0.271, cHeight * 0.174, cWidth * 0.266, cHeight * 0.072),
+                    new Boundary(cWidth * 0.163, cHeight * 0.13, cWidth * 0.263, cHeight * 0.046),
+                    new Boundary(cWidth * 0.085, cHeight * 0.549, cWidth * 0.002, cHeight * 0.678),
+                    new Boundary(cWidth * 0.404, cHeight * 0.406, cWidth * 0.666, cHeight * 0.075),
+                    new Boundary(cWidth * 0.339, cHeight * 0.251, cWidth * 0.605, cHeight * 0.077),
+                    new Boundary(cWidth * 0.54, cHeight * 0.997, cWidth * 0.781, cHeight * 0.851),
+                ];
+            } else {
+                particleViewRange = 340;
+                walls = [
+                    new Boundary(cWidth * 0.684, cHeight * 0.753, cWidth * 0.824, cHeight * 0.705),
+                    new Boundary(cWidth * 0.691, cHeight * 0.615, cWidth * 0.683, cHeight * 0.628),
+                    new Boundary(cWidth * 0.221, cHeight * 0.771, cWidth * 0.253, cHeight * 0.769),
+                    new Boundary(cWidth * 0.246, cHeight * 0.641, cWidth * 0.272, cHeight * 0.651),
+                    new Boundary(cWidth * 0.096, cHeight * 0.591, cWidth * 0.14, cHeight * 0.511),
+                    new Boundary(cWidth * 0.203, cHeight * 0.376, cWidth * 0.203, cHeight * 0.332),
+                    new Boundary(cWidth * 0.331, cHeight * 0.299, cWidth * 0.364, cHeight * 0.294),
+                    new Boundary(cWidth * 0.253, cHeight * 0.203, cWidth * 0.397, cHeight * 0.128),
+                    new Boundary(cWidth * 0.652, cHeight * 0.213, cWidth * 0.784, cHeight * 0.243),
+                    new Boundary(cWidth * 0.816, cHeight * 0.366, cWidth * 0.802, cHeight * 0.306),
+                    new Boundary(cWidth * 0.794, cHeight * 0.552, cWidth * 0.876, cHeight * 0.471),
+                ];
+            }
+
+            rays = [];
+            particles = [
+                new Particle()
+            ];
+
+            player = particles[0];
+
+            //randomizeWalls();
+
+            document.getElementById('colorPicker').value = '#ffffff';
+            document.getElementById('wallColorPicker').value = '#DC143C';
+            document.getElementById('mode').innerHTML = 'Move';
+
+            document.getElementById('raySlider').value = particleRayCount;
+            document.getElementById('angleSlider').value = 180;
+            document.getElementById('directionSlider').value = 0;
+            document.getElementById('rayWidthSlider').value = rayWidth;
+            document.getElementById('wallWidthSlider').value = boundaryWidth;
+
+            document.getElementById('viewSlider').max = Math.max(cWidth, cHeight) * 1.1;
+            document.getElementById('viewSlider').value = particleViewRange || Math.max(cWidth, cHeight) * 1.1;
+
+            viewAngleFunc();
+            viewSliderFunc();
+            raySliderFunc();
+            changeRayWidth();
+            changeWallWidth();
+
+            if (settingsDiv.style.display == 'flex') {
+                showSettings = true;
+            }
+
+
+            fps = 60;
+
+            if (typeof loop !== 'undefined') {
+                clearInterval(loop);
+            }
+
+            loop = setInterval(main, 1000 / fps);
         }
-    }
-    else if(player.mode == 'delete' && mouse.down) {
-        new Ray(mouse.start.x, mouse.start.y, 0, {color: 'green', width: 2, type: 'deleter'}).setEnd(mouse.current.x, mouse.current.y).draw();
-    }
-}
 
-////////////////////////////////////////////////
-// UI Logic
 
-function toggleMode() {
-    if(player.mode == 'move') {
-        player.mode = 'draw';
-        document.getElementById('mode').innerHTML = 'Draw';
-    }
-    else if(player.mode == 'draw') {
-        player.mode = 'delete';
-        document.getElementById('mode').innerHTML = 'Delete';
-    }
-    else if(player.mode == 'delete') {
-        player.mode = 'move';
-        document.getElementById('mode').innerHTML = 'Move';
-    }
-}
-
-function raySliderFunc() {
-    player.rayCount = parseInt(document.getElementById('raySlider').value);
-}
-
-function changeViewStyle() {
-    const value = document.getElementById('viewStyle').innerHTML;
-
-    if(value == 'Pure') {
-        document.getElementById('viewStyle').innerHTML = 'Mixed';
-        player.viewStyle = 'mixed';
-    }
-    else if(value == 'Mixed') {
-        document.getElementById('viewStyle').innerHTML = 'Shaded';
-        player.viewStyle = 'shaded';
-    }
-    else if(value == 'Shaded') {
-        document.getElementById('viewStyle').innerHTML = 'Pure';
-        player.viewStyle = 'pure';
-    }
-}
-
-function viewSliderFunc() {
-    player.viewRange = parseInt(document.getElementById('viewSlider').value);
-    document.getElementById('viewRange').innerHTML = `View Range: ${player.viewRange}`;
-}
-
-function viewAngleFunc() {
-    const angle = parseInt(document.getElementById('angleSlider').value);
-    const offset = parseInt(document.getElementById('directionSlider').value);
-
-    if(angle != 180 && angle != 0) {
-        player.start = offset - angle/2;
-        player.stop = offset + angle/2;
-        document.getElementById('viewAngle').innerHTML = `View Angle: ${angle}`;
-    } 
-    else if(angle == 0) {
-        player.start = offset;
-        player.stop = offset;
-        document.getElementById('viewAngle').innerHTML = `View Angle: ${0}`;
-    }
-    else if(angle == 180) {
-        player.start = 0;
-        player.stop = 360;
-        document.getElementById('viewAngle').innerHTML = `View Angle: ${360}`;
-    }
-
-    document.getElementById('viewDirection').innerHTML = `View Direction: ${offset}`;
-}
-
-function toggleSettings() {
-    showSettings = !showSettings;
-
-    if(showSettings) {
-        settingsDiv.style.display = 'flex';
-    } else {
-        settingsDiv.style.display = 'none';
-    }
-
-    const bottom = settingsDiv.getBoundingClientRect().bottom;
-    const top = settingsDiv.getBoundingClientRect().top;
-
-    if(bottom >= window.innerHeight) {
-        settingsDiv.style.height = `${window.innerHeight - top - 35}px`;
-    } else {
-        settingsDiv.style.height = 'auto';
-    }
-}
-
-function chooseColor() {
-    const value = document.getElementById('colorPicker').value;
-
-    player.rayColor = value;
-}
-
-function changeRayWidth() {
-    player.rayWidth = parseFloat(document.getElementById('rayWidthSlider').value);
-    document.getElementById('rayWidthH6').innerHTML = `Ray Width: ${player.rayWidth}`;
-}
-
-function chooseWallColor() {
-    const value = document.getElementById('wallColorPicker').value;
-
-    boundaryColor = value;
-
-    for(wall of walls) {
-        wall.color = value;
-    }
-}
-
-function changeWallWidth() {
-    const value = parseFloat(document.getElementById('wallWidthSlider').value);
-
-    boundaryWidth = value;
-
-    document.getElementById('wallWidth').innerHTML = `Wall Width: ${value}`;
-
-    for(wall of walls) {
-        if(value > 0) {
-            wall.width = value;
-            wall.visible = true;
-        } else {
-            wall.width = value;
-            wall.visible = false;
+        function randomizeWalls() {
+            walls = [];
+            for (let i = 0; i < wallCount; i++) {
+                walls.push(new Boundary(Math.random() * cWidth, Math.random() * cHeight, Math.random() * cWidth, Math.random() * cHeight));
+            }
         }
-    }
-}
 
+        ////////////////////////////////////////////////
+        // Ray Object Type
 
-// log and copy the current wall layout so that it can be saved for later
-function generateLayout() {
-    let str = '[\n';
-    const val = 1000;
-    for(let wall of walls) {
-        str += `new Boundary(cWidth * ${Math.round((wall.start.x/cWidth)*val)/val}, cHeight * ${Math.round((wall.start.y/cHeight)*val)/val}, cWidth * ${Math.round((wall.end.x/cWidth)*val)/val}, cHeight * ${Math.round((wall.end.y/cHeight)*val)/val}) , \n`;
-    }
-    str = str.slice(0, -4);
-    str += '\n]';
+        function Ray(x, y, angle, params) {
 
-    try {
-        const copyText = document.getElementById("copyField");
+            if (typeof params === 'undefined') {
+                params = {};
+            }
 
-        copyText.style.display = 'flex';
-        copyText.value = str;
+            this.x = x;
+            this.y = y;
+            this.angle = angle; //radians
 
-        copyText.select();
-        copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+            this.range = params.range || Math.max(cWidth, cHeight) * 2;
+            this.color = params.color || rayColor;
+            this.width = params.width || rayWidth;
+            this.active = params.active || true;
+            this.deletable = params.deletable || false;
 
-        document.execCommand("copy");
-
-        copyText.style.display = 'none';
-        alert("The layout was copied to your clipboard.");
-    } catch {
-        alert("Your Browser Doesn't Support Copying Text");
-        console.log(str);
-    }
-}
-
-function restoreLayout() {
-    let str = prompt("Paste the Layout: ");
-    if(str) {
-        walls = [];
-        str = str.substring(1, str.length-1);
-        str = str.split(' , ');
-        for(let com of str) {
-            walls.push(eval(com));
+            this.length = this.range; // implementation detail
+            this.type = params.type || 'normal'; // used for delete mode
         }
-    }
-}
+
+        Ray.prototype.draw = function () {
+            if (this.deletable) {
+                this.active = false;
+            }
+
+            if (this.active) {
+                ctx.beginPath();
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.width;
+                ctx.lineCap = "round";
+                ctx.moveTo(this.x, cHeight - this.y);
+                ctx.lineTo(this.x + this.length * Math.cos(this.angle), cHeight - (this.y + this.length * Math.sin(this.angle)));
+                ctx.stroke();
+                ctx.closePath();
+            }
+
+            this.length = this.range;
+        }
+
+        Ray.prototype.cast = function (wall) {
+            if (this.active) {
+
+                // wall: {
+                //     start: {
+                //         x: number,
+                //         y: number
+                //     },
+                //     end {
+                //         x: number,
+                //         y: number
+                //     },
+                //     width: number
+                // }
+
+                // prevent slopes of infinity and of zero
+                if (this.angle == 0 || this.angle == Math.PI / 2 || this.angle == Math.PI || this.angle == 3 * Math.PI / 2 || this.angle == 2 * Math.PI) {
+                    this.angle += 0.00001;
+                }
+                if (wall.start.x == wall.end.x) {
+                    wall.end.x += 0.00001;
+                }
+                if (wall.start.y == wall.end.y) {
+                    wall.end.y += 0.00001;
+                }
+
+                let x1w = null;
+                let y1w = null;
+                let x2w = null;
+                let y2w = null;
+
+                if (wall.start.x < wall.end.x) {
+                    x1w = wall.start.x;
+                    x2w = wall.end.x;
+                    y1w = wall.start.y;
+                    y2w = wall.end.y;
+                } else {
+                    x1w = wall.end.x;
+                    x2w = wall.start.x;
+                    y1w = wall.end.y;
+                    y2w = wall.start.y;
+                }
+
+                let x1r = null;
+                let y1r = null;
+                let x2r = null;
+                let y2r = null;
+
+                if (this.x < (this.x + this.length * Math.cos(this.angle))) {
+                    x1r = this.x;
+                    y1r = this.y;
+                    x2r = this.x + this.length * Math.cos(this.angle);
+                    y2r = this.y + this.length * Math.sin(this.angle);
+                } else {
+                    x1r = this.x + this.length * Math.cos(this.angle);
+                    x2r = this.x;
+                    y1r = this.y + this.length * Math.sin(this.angle);
+                    y2r = this.y;
+                }
+
+                let slopeW = (y2w - y1w) / (x2w - x1w);
+                let slopeR = (y2r - y1r) / (x2r - x1r);
+
+                const xc = ((y1r - (slopeR * x1r)) - (y1w - (slopeW * x1w))) / (slopeW - slopeR) || null;
+                const yc = (slopeW * xc) + (y1w - (slopeW * x1w)) || null;
+
+                if (xc >= x1r && xc <= x2r &&
+                    xc >= x1w - wall.width / 2 && xc <= x2w + wall.width / 2 &&
+                    yc >= Math.min(y1r, y2r) && yc <= Math.max(y1r, y2r) &&
+                    yc >= Math.min(y1w, y2w) - wall.width / 2 && yc <= Math.max(y1w, y2w) + wall.width / 2) {
+                    if (this.type == 'normal') {
+                        this.setEnd(xc, yc);
+                        return { x: xc, y: yc };
+                    }
+                    else if (this.type == 'deleter') {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        Ray.prototype.setEnd = function (x, y) {
+            this.angle = Math.atan2(y - this.y, x - this.x);
+            this.length = ((x - this.x) ** 2 + (y - this.y) ** 2) ** 0.5;
+            return this;
+        }
+
+        Ray.prototype.lookAt = function (x, y) {
+            this.angle = Math.atan2(y - this.y, x - this.x);
+        }
+
+        ////////////////////////////////////////////////
+        // Boundary Object Type
+
+        function Boundary(x1, y1, x2, y2, params) {
+
+            if (typeof params === 'undefined') {
+                params = {};
+            }
+
+            this.start = { x: x1, y: y1 };
+            this.end = { x: x2, y: y2 };
+
+            this.xV = params.xV || 0;
+            this.yV = params.yV || 0;
+
+            this.color = params.color || boundaryColor;
+            this.width = params.width || boundaryWidth;
+            this.visible = params.visible || true;
+        }
+
+        Boundary.prototype.draw = function () {
+            if (this.xV) {
+                this.start.x += this.xV / fps;
+                this.end.x += this.xV / fps;
+            }
+            if (this.yV) {
+                this.start.y += this.yV / fps;
+                this.end.y += this.yV / fps;
+            }
+
+            if (this.visible) {
+                ctx.beginPath();
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.width;
+                ctx.lineCap = "round";
+                ctx.moveTo(this.start.x, cHeight - this.start.y);
+                ctx.lineTo(this.end.x, cHeight - this.end.y);
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+
+        ////////////////////////////////////////////////
+        // Particle Object Type
+
+        function Particle(params) {
+
+            if (typeof params === 'undefined') {
+                params = {};
+            }
+
+            // particle variables
+            this.x = params.x || cWidth / 2;
+            this.y = params.y || cHeight / 2;
+            this.radius = params.radius || particleRadius;
+            this.color = params.color || particleColor;
+
+            // has a 'move' around, a 'draw' wall, and a 'delete' wall mode
+            this.mode = params.mode || 'move';
+
+            // particle's 'flashlight' variables
+            this.start = params.start || 0; // starting angle of view (degrees)
+            this.stop = params.stop || 360;
+            this.rayCount = params.rayCount || particleRayCount;
+            this.rayColor = params.rayColor || rayColor;
+            this.rayWidth = params.rayWidth || rayWidth;
+            this.emitting = params.emitting || true;
+            this.viewRange = params.viewRange || particleViewRange;
+
+            this.viewStyle = params.viewStyle || particleViewStyle;
 
 
-////////////////////////////////////////////////
-// Main Loop
+            // implementation details
+            this.ownedRays = []; // list of indexes of rays owned by the particle
+            this.prev = null; // used to detect change in rayCount in this.glow()   
+        }
 
-function main() {
-    // clear canvas
-    ctx.fillStyle = canvas.color;
-    ctx.fillRect(0, 0, cWidth, cHeight);
+        Particle.prototype.glow = function () {
 
-    sendRays();
-    handleParticles();
-    drawWalls();
-    checkUserInput();
-}
+            if (this.emitting && this.viewStyle == 'shaded') {
+                let grd = ctx.createRadialGradient(this.x, cHeight - this.y, this.radius, this.x, cHeight - this.y, this.viewRange);
+                grd.addColorStop(0, this.rayColor);
+                grd.addColorStop(1, canvas.color);
+                ctx.beginPath();
+                ctx.fillStyle = grd;
+                for (let index of this.ownedRays) {
+                    const ray = rays[index];
+                    for (let wall of walls) {
+                        ray.cast(wall);
+                    }
+                    ctx.lineTo(ray.x + ray.length * Math.cos(ray.angle), cHeight - (ray.y + ray.length * Math.sin(ray.angle)));
+                }
+                ctx.fill();
+                ctx.closePath();
+            }
 
-</script>
-<style>
+            if (this.rayCount != this.prev) {
+                if (this.rayCount > this.prev) {
+                    let leftToAdd = this.rayCount - this.prev;
+                    for (let i = 0; i < rays.length; i++) {
+                        if (rays[i].deletable && leftToAdd > 0) {
+                            this.ownedRays.push(i);
+                            leftToAdd -= 1;
+                        }
+                    }
 
-html {
-    width: 100%;
-    height: 100%;
-}
-body {
-    height: 100%;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-    overscroll-behavior: contain;
-    font-family:Arial, Helvetica, sans-serif;
-    overflow: hidden;
-}
-.canvas {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-canvas {
-    padding: 0;
-    margin: 0;
-}
+                    for (let i = 0; i < leftToAdd; i++) {
+                        const index = rays.push(null) - 1;
+                        this.ownedRays.push(index);
+                    }
+                }
+                else {
+                    let leftToRemove = this.prev - this.rayCount;
+                    for (let i = this.ownedRays.length - 1; i >= 0; i--) {
+                        if (this.ownedRays[i] == rays.length - 1 && leftToRemove > 0) {
+                            rays.splice(this.ownedRays[i], 1);
+                            this.ownedRays.splice(i, 1);
+                            leftToRemove -= 1;
+                        }
+                        else if (this.ownedRays[i] != rays.length - 1 && leftToRemove > 0) {
+                            rays[this.ownedRays[i]].deletable = true;
+                            this.ownedRays.splice(i, 1);
+                            leftToRemove -= 1;
+                        }
+                    }
+                }
+                this.prev = this.rayCount;
+            }
 
-.ui {
-    position: absolute;
-    width: fit-content;
-    top: 0;
-    left: 0;
-    display: flex;
-    justify-content: left;
-    flex-direction: column;
-}
-.buttons {
-    width: fit-content;
-    display: flex;
-    justify-content: left;
-    flex-direction: column;
-}
-.settings {
-    display: none;
-    width: fit-content;
-    justify-content: left;
-    align-items: center;
-    margin: 10px;
-    padding: 10px;
-    border: 2px solid white;
-    border-radius: 7px;
-    background: #37474f;
-    flex-direction: column;
-    overflow-y: auto;
-    overflow-x: hidden;
-    height: auto;
-    width: auto;
-}
-.set {
-    border-radius: 7px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-}
+            // draw particle (circle)
+            ctx.beginPath();
+            ctx.fillStyle = this.color;
+            ctx.arc(this.x, cHeight - this.y, this.radius, 0, Math.PI * 2, true);
+            ctx.fill();
+            ctx.closePath();
 
-h6 {
-    margin: 0;
-    text-align: center;
-    color: white;
-}
-input:hover {
-    outline: none;
-}
-input:focus {
-    outline: none;
-}
-input:active {
-    outline: none;
-}
-#mode,#random,#reset,#settings,#save,#restore {
-    margin: 10px;
-    width: auto;
-    font-weight: bold;
-    color: white;
-    background: #37474f;
-    border: 2px solid white;
-    border-radius: 7px;
-    outline: none;
-    margin-bottom: 0px;
-    padding-top: 2.5px;
-    padding-bottom: 2.5px;
-}
-#viewStyle {
-    margin-top: 5px;
-    width: auto;
-    font-weight: bold;
-    color: white;
-    background: #37474f;
-    border: 2px solid white;
-    border-radius: 7px;
-    outline: none;
-    margin-bottom: 2.5px;
-    padding-top: 2.5px;
-    padding-bottom: 2.5px;
-}
-#mode:active, #random:active, #reset:active, #settings:active, #save:active, #restore:active, #viewStyle:active {
-    background: #888;
-}
-button:focus {
-    outline: none;
-}
-button::-moz-focus-inner {
-    border: 0;
-}
+            if (this.emitting) {
+                let count = 0;
+                for (let i of this.ownedRays) {
+                    const start = this.start;
+                    const end = this.stop;
+                    let color = this.rayColor;
+                    if (this.prev == this.rayCount) {
 
-#raySlider {
-    border: 2px solid white;
-    border-radius: 5px;
-    margin-top: 5px;
-    text-align: center;
-    background: grey;
-    color: black;
-}
+                        if (this.viewStyle == 'mixed') {
+                            let grd = ctx.createRadialGradient(this.x, cHeight - this.y, this.radius, this.x, cHeight - this.y, this.viewRange);
+                            grd.addColorStop(0, this.rayColor);
+                            grd.addColorStop(1, canvas.color);
+                            color = grd;
+                        }
+                        else if (this.viewStyle == 'shaded') {
+                            color = 'rgba(0,0,0,0)';
+                        }
 
-</style>
+                        rays[i] = new Ray(this.x, this.y, (start + ((end - start) / this.ownedRays.length) * count) * Math.PI / 180, { color: color, width: this.rayWidth, range: this.viewRange });
+                        rays[i].active = true;
+                    }
+                    count++;
+                }
+            } else {
+                for (let i of this.ownedRays) {
+                    rays[i].active = false;
+                }
+            }
+
+            this.prev = this.rayCount;
+        }
+
+        ////////////////////////////////////////////////
+        // Logic
+
+        function drawWalls() {
+            for (let wall of walls) {
+                wall.draw();
+            }
+        }
+
+        function sendRays() {
+
+            for (let ray of rays) {
+
+                for (let wall of walls) {
+                    ray.cast(wall);
+                }
+
+                ray.draw();
+            }
+        }
+
+        function handleParticles() {
+            for (let part of particles) {
+                part.glow();
+            }
+        }
+
+        function checkUserInput() {
+            if (player.mode == 'draw' && mouse.down) {
+                let mag = ((mouse.current.x - mouse.start.x) ** 2 + (mouse.current.y - mouse.start.y) ** 2) ** 0.5;
+                let dirx = (boundaryWidth / 1) * ((mouse.start.x - mouse.current.x) / mag);
+                let diry = (boundaryWidth / 1) * ((mouse.start.y - mouse.current.y) / mag);
+                if (mag > boundaryWidth / 1) {
+                    new Boundary(mouse.start.x, mouse.start.y, mouse.current.x + dirx, mouse.current.y + diry).draw();
+                } else {
+                    new Boundary(mouse.start.x, mouse.start.y, mouse.start.x, mouse.start.y).draw();
+                }
+            }
+            else if (player.mode == 'delete' && mouse.down) {
+                new Ray(mouse.start.x, mouse.start.y, 0, { color: 'green', width: 2, type: 'deleter' }).setEnd(mouse.current.x, mouse.current.y).draw();
+            }
+        }
+
+        ////////////////////////////////////////////////
+        // UI Logic
+
+        function toggleMode() {
+            if (player.mode == 'move') {
+                player.mode = 'draw';
+                document.getElementById('mode').innerHTML = 'Draw';
+            }
+            else if (player.mode == 'draw') {
+                player.mode = 'delete';
+                document.getElementById('mode').innerHTML = 'Delete';
+            }
+            else if (player.mode == 'delete') {
+                player.mode = 'move';
+                document.getElementById('mode').innerHTML = 'Move';
+            }
+        }
+
+        function raySliderFunc() {
+            player.rayCount = parseInt(document.getElementById('raySlider').value);
+        }
+
+        function changeViewStyle() {
+            const value = document.getElementById('viewStyle').innerHTML;
+
+            if (value == 'Pure') {
+                document.getElementById('viewStyle').innerHTML = 'Mixed';
+                player.viewStyle = 'mixed';
+            }
+            else if (value == 'Mixed') {
+                document.getElementById('viewStyle').innerHTML = 'Shaded';
+                player.viewStyle = 'shaded';
+            }
+            else if (value == 'Shaded') {
+                document.getElementById('viewStyle').innerHTML = 'Pure';
+                player.viewStyle = 'pure';
+            }
+        }
+
+        function viewSliderFunc() {
+            player.viewRange = parseInt(document.getElementById('viewSlider').value);
+            document.getElementById('viewRange').innerHTML = `View Range: ${player.viewRange}`;
+        }
+
+        function viewAngleFunc() {
+            const angle = parseInt(document.getElementById('angleSlider').value);
+            const offset = parseInt(document.getElementById('directionSlider').value);
+
+            if (angle != 180 && angle != 0) {
+                player.start = offset - angle / 2;
+                player.stop = offset + angle / 2;
+                document.getElementById('viewAngle').innerHTML = `View Angle: ${angle}`;
+            }
+            else if (angle == 0) {
+                player.start = offset;
+                player.stop = offset;
+                document.getElementById('viewAngle').innerHTML = `View Angle: ${0}`;
+            }
+            else if (angle == 180) {
+                player.start = 0;
+                player.stop = 360;
+                document.getElementById('viewAngle').innerHTML = `View Angle: ${360}`;
+            }
+
+            document.getElementById('viewDirection').innerHTML = `View Direction: ${offset}`;
+        }
+
+        function toggleSettings() {
+            showSettings = !showSettings;
+
+            if (showSettings) {
+                settingsDiv.style.display = 'flex';
+            } else {
+                settingsDiv.style.display = 'none';
+            }
+
+            const bottom = settingsDiv.getBoundingClientRect().bottom;
+            const top = settingsDiv.getBoundingClientRect().top;
+
+            if (bottom >= window.innerHeight) {
+                settingsDiv.style.height = `${window.innerHeight - top - 35}px`;
+            } else {
+                settingsDiv.style.height = 'auto';
+            }
+        }
+
+        function chooseColor() {
+            const value = document.getElementById('colorPicker').value;
+
+            player.rayColor = value;
+        }
+
+        function changeRayWidth() {
+            player.rayWidth = parseFloat(document.getElementById('rayWidthSlider').value);
+            document.getElementById('rayWidthH6').innerHTML = `Ray Width: ${player.rayWidth}`;
+        }
+
+        function chooseWallColor() {
+            const value = document.getElementById('wallColorPicker').value;
+
+            boundaryColor = value;
+
+            for (wall of walls) {
+                wall.color = value;
+            }
+        }
+
+        function changeWallWidth() {
+            const value = parseFloat(document.getElementById('wallWidthSlider').value);
+
+            boundaryWidth = value;
+
+            document.getElementById('wallWidth').innerHTML = `Wall Width: ${value}`;
+
+            for (wall of walls) {
+                if (value > 0) {
+                    wall.width = value;
+                    wall.visible = true;
+                } else {
+                    wall.width = value;
+                    wall.visible = false;
+                }
+            }
+        }
+
+
+        // log and copy the current wall layout so that it can be saved for later
+        function generateLayout() {
+            let str = '[\n';
+            const val = 1000;
+            for (let wall of walls) {
+                str += `new Boundary(cWidth * ${Math.round((wall.start.x / cWidth) * val) / val}, cHeight * ${Math.round((wall.start.y / cHeight) * val) / val}, cWidth * ${Math.round((wall.end.x / cWidth) * val) / val}, cHeight * ${Math.round((wall.end.y / cHeight) * val) / val}) , \n`;
+            }
+            str = str.slice(0, -4);
+            str += '\n]';
+
+            try {
+                const copyText = document.getElementById("copyField");
+
+                copyText.style.display = 'flex';
+                copyText.value = str;
+
+                copyText.select();
+                copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+
+                document.execCommand("copy");
+
+                copyText.style.display = 'none';
+                alert("The layout was copied to your clipboard.");
+            } catch {
+                alert("Your Browser Doesn't Support Copying Text");
+                console.log(str);
+            }
+        }
+
+        function restoreLayout() {
+            let str = prompt("Paste the Layout: ");
+            if (str) {
+                walls = [];
+                str = str.substring(1, str.length - 1);
+                str = str.split(' , ');
+                for (let com of str) {
+                    walls.push(eval(com));
+                }
+            }
+        }
+
+
+        ////////////////////////////////////////////////
+        // Main Loop
+
+        function main() {
+            // clear canvas
+            ctx.fillStyle = canvas.color;
+            ctx.fillRect(0, 0, cWidth, cHeight);
+
+            sendRays();
+            handleParticles();
+            drawWalls();
+            checkUserInput();
+        }
+
+    </script>
+    <style>
+        html {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            height: 100%;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            overscroll-behavior: contain;
+            font-family: Arial, Helvetica, sans-serif;
+            overflow: hidden;
+        }
+
+        .canvas {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            padding: 0;
+            margin: 0;
+        }
+
+        .ui {
+            position: absolute;
+            width: fit-content;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: left;
+            flex-direction: column;
+        }
+
+        .buttons {
+            width: fit-content;
+            display: flex;
+            justify-content: left;
+            flex-direction: column;
+        }
+
+        .settings {
+            display: none;
+            width: fit-content;
+            justify-content: left;
+            align-items: center;
+            margin: 10px;
+            padding: 10px;
+            border: 2px solid white;
+            border-radius: 7px;
+            background: #37474f;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: auto;
+            width: auto;
+        }
+
+        .set {
+            border-radius: 7px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        h6 {
+            margin: 0;
+            text-align: center;
+            color: white;
+        }
+
+        input:hover {
+            outline: none;
+        }
+
+        input:focus {
+            outline: none;
+        }
+
+        input:active {
+            outline: none;
+        }
+
+        #mode,
+        #random,
+        #reset,
+        #settings,
+        #save,
+        #restore {
+            margin: 10px;
+            width: auto;
+            font-weight: bold;
+            color: white;
+            background: #37474f;
+            border: 2px solid white;
+            border-radius: 7px;
+            outline: none;
+            margin-bottom: 0px;
+            padding-top: 2.5px;
+            padding-bottom: 2.5px;
+        }
+
+        #viewStyle {
+            margin-top: 5px;
+            width: auto;
+            font-weight: bold;
+            color: white;
+            background: #37474f;
+            border: 2px solid white;
+            border-radius: 7px;
+            outline: none;
+            margin-bottom: 2.5px;
+            padding-top: 2.5px;
+            padding-bottom: 2.5px;
+        }
+
+        #mode:active,
+        #random:active,
+        #reset:active,
+        #settings:active,
+        #save:active,
+        #restore:active,
+        #viewStyle:active {
+            background: #888;
+        }
+
+        button:focus {
+            outline: none;
+        }
+
+        button::-moz-focus-inner {
+            border: 0;
+        }
+
+        #raySlider {
+            border: 2px solid white;
+            border-radius: 5px;
+            margin-top: 5px;
+            text-align: center;
+            background: grey;
+            color: black;
+        }
+    </style>
 </head>
+
 <body>
-    <div class = 'canvas'>
+    <div class='canvas'>
         <canvas id='canvas'></canvas>
     </div>
 
@@ -1009,39 +1034,44 @@ button::-moz-focus-inner {
         <div class='settings'>
             <div class='set'>
                 <h6>Ray Count</h6>
-                <input id='raySlider' oninput='raySliderFunc()' type='text'  value='1080'/>
+                <input id='raySlider' oninput='raySliderFunc()' type='text' value='1080' />
             </div>
-            <div class = 'set' style='margin-top: 5px'>
+            <div class='set' style='margin-top: 5px'>
                 <h6>View-Style</h6>
                 <button id='viewStyle' onclick='changeViewStyle()'>Mixed</button>
             </div>
             <div class='set' style='margin-top: 5px'>
                 <h6 id='viewRange'>View Range</h6>
-                <input id='viewSlider' oninput='viewSliderFunc()' type='range' min='50' max='2000' value='2000'/>
+                <input id='viewSlider' oninput='viewSliderFunc()' type='range' min='50' max='2000' value='2000' />
             </div>
             <div class='set' style='margin-top: 5px'>
                 <h6 id='viewAngle'>View Angle</h6>
-                <input id='angleSlider' oninput='viewAngleFunc()' type='range' step='2' min='0' max='180' value='180'/>
+                <input id='angleSlider' oninput='viewAngleFunc()' type='range' step='2' min='0' max='180' value='180' />
             </div>
             <div class='set' style='margin-top: 5px'>
                 <h6 id='viewDirection'>View Direction</h6>
-                <input id='directionSlider' oninput='viewAngleFunc()' type='range' step='2' min='0' max='360' value='0'/>
+                <input id='directionSlider' oninput='viewAngleFunc()' type='range' step='2' min='0' max='360'
+                    value='0' />
             </div>
             <div class='set' style='margin-top: 5px'>
                 <h6>Ray Color</h6>
-                <input style='width: auto; margin-top: 5px; margin-bottom: 5px; border: none; border-radius: 5px' id='colorPicker' oninput='chooseColor()' type='color'/>
+                <input style='width: auto; margin-top: 5px; margin-bottom: 5px; border: none; border-radius: 5px'
+                    id='colorPicker' oninput='chooseColor()' type='color' />
             </div>
             <div class='set' style='margin-top: 5px'>
                 <h6 id='rayWidthH6'>Ray Width</h6>
-                <input id='rayWidthSlider' oninput='changeRayWidth()' type='range' step='0.1' min='0.1' max='4' value='0.2'/>
+                <input id='rayWidthSlider' oninput='changeRayWidth()' type='range' step='0.1' min='0.1' max='4'
+                    value='0.2' />
             </div>
             <div class='set' style='margin-top: 5px; border-radius: 5px'>
                 <h6>Wall Color</h6>
-                <input style='width: auto; margin-top: 5px; margin-bottom: 5px; border: none; border-radius: 5px' id='wallColorPicker' oninput='chooseWallColor()' type='color'/>
+                <input style='width: auto; margin-top: 5px; margin-bottom: 5px; border: none; border-radius: 5px'
+                    id='wallColorPicker' oninput='chooseWallColor()' type='color' />
             </div>
             <div class='set' style='margin-top: 5px'>
                 <h6 id='wallWidth'>Wall Width</h6>
-                <input id='wallWidthSlider' oninput='changeWallWidth()' type='range' step='0.2' min='0' max='8' value='3'/>
+                <input id='wallWidthSlider' oninput='changeWallWidth()' type='range' step='0.2' min='0' max='8'
+                    value='3' />
             </div>
             <div class='set' style='margin-top: 5px; margin-bottom: 0px'>
                 <button id='save' onclick='generateLayout()'>Save Layout</button>
@@ -1049,6 +1079,7 @@ button::-moz-focus-inner {
             </div>
         </div>
     </div>
-        <input style='display: none' type="text" value="null" id="copyField"/>
+    <input style='display: none' type="text" value="null" id="copyField" />
 </body>
+
 </html>

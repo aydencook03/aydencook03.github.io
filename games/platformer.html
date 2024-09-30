@@ -1,0 +1,666 @@
+<!-- This Code Is 100% Plain JavaScript
+      With No JQuery Or Images -->
+
+<!-- Check Out My Other Games If You 
+      Liked This One -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+
+        var plat = [];
+        var platArray = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 6, 1, 1, 3, 1, 0, 7, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 7, 7, 7, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 3, 3, 3, 0, 0, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+        ];
+
+        // Map Key/Legend
+        var nothing = 0;
+        var platform = 1;
+        var spawn = 2;
+        var breakable = 3;
+        var whiteCloud = 4;
+        var rainCloud = 5;
+        var bounce = 6;
+        var bottomHit = 7;
+        var enemySpawn = 8;
+
+
+        var mapHeight = 400;
+        var numberOfPlats = 15;
+
+
+        var platWidth = 25;
+        var platHeight = 20;
+        var rowCount = mapHeight / platHeight;
+        var colCount = platArray.length / rowCount;
+        var mapWidth = colCount * platWidth;
+        var grd;
+
+
+        var cloud = [];
+        var numberOfClouds = 25;
+
+
+        window.onload = function () {
+            canvas =
+                document.getElementById("canvas");
+            ctx = canvas.getContext("2d");
+            setInterval(draw, 1000 / 60);
+            //platReset();
+            createPlat();
+            playerReset();
+            resetEnemies();
+            for (var i = 0; i < numberOfClouds; i++) {
+                cloud.push({
+                    x: Math.random() * mapWidth,
+                    y: Math.random() * mapHeight / 3,
+                    w: 30 + Math.random() * 40,
+                    h: 20 + Math.random() * 30
+                });
+            }
+        }
+
+        function platReset() {
+            for (var i = 0; i < colCount * rowCount; i++) {
+                platArray[i] = platform;
+            }
+        }
+
+        function createPlat() {
+            for (var r = 0; r < rowCount; r++) {
+                for (var c = 0; c < colCount; c++) {
+                    var newPlat = new platClass();
+                    var array = rowColArray(c, r);
+                    if (platArray[array] != nothing &&
+                        platArray[array] != spawn &&
+                        platArray[array] != enemySpawn) {
+                        newPlat.x = platWidth * c;
+                        newPlat.y = platHeight * r;
+                        newPlat.w = platWidth;
+                        newPlat.h = platHeight;
+                        newPlat.array = platArray[array];
+
+
+                        plat.push(newPlat);
+                    }
+                }
+            }
+        }
+
+        function rowColArray(c, r) {
+            return c + colCount * r;
+        }
+
+        //Rectangle Code
+        function drawRect(topLeftX, topLeftY, width, height, color) {
+            ctx.fillStyle = color; ctx.fillRect(topLeftX, topLeftY, width, height);
+        }
+        //Circle Code
+        function drawCircle(x, y, radius, color) {
+            ctx.beginPath();
+            ctx.fillStyle = color;
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function platClass() {
+            this.x = Math.random() * mapWidth;
+            this.y = Math.random() * mapHeight;
+            this.w = Math.random() * 70 + 30;
+            this.h = Math.random() * 10 + 20;
+            this.array = nothing;
+
+            this.isDrawn = false;
+
+            this.color = "teal";
+            this.stroke = 2;
+
+            this.draw = function () {
+                if (this.array == breakable) {
+                    this.color = "silver";
+                }
+                if (this.array == whiteCloud) {
+                    this.color = "white";
+                }
+                if (this.array == bounce) {
+                    this.color = "orange";
+                }
+                if (this.array == bottomHit) {
+                    this.color = "grey";
+                }
+                this.isDrawn = true;
+                ctx.beginPath();
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = "black";
+                if (this.array == whiteCloud) {
+                    ctx.strokeStyle = "white";
+                }
+                ctx.lineWidth = this.stroke;
+                ctx.rect(this.x, this.y, this.w, this.h);
+                ctx.fill();
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+
+        var debris = [];
+
+        function debrisClass() {
+            this.x = playerX + playerWidth / 2;
+            this.y = playerY + playerHeight;
+
+            this.velX = 2 - Math.random() * 4;
+            this.velY = Math.random() * -1;
+            this.cyclesLeft = 15 + Math.random() * 15;
+            this.color = "white";
+
+            this.move = function () {
+                this.cyclesLeft--;
+                this.radius = this.cyclesLeft / 10;
+                this.x += this.velX;
+                this.y += this.velY;
+            }
+
+            this.draw = function () {
+                if (this.cyclesLeft > 0) {
+                    drawRect(this.x, this.y, this.radius, this.radius, this.color);
+                }
+            }
+        }
+
+        var playerX = 10;
+        var playerY = mapHeight;
+        var playerWidth = 10;
+        var playerHeight = 25;
+        var xVelocity = 0;
+        var yVelocity = 0;
+        var gravity = 0;
+        var onGround = true;
+
+        function playerReset() {
+            for (var r = 0; r < rowCount; r++) {
+                for (var c = 0; c < colCount; c++) {
+                    var array = rowColArray(c, r);
+
+                    if (platArray[array] == spawn) {
+                        playerX = c * platWidth + platWidth / 2 - playerWidth / 2;
+                        playerY = r * platHeight - 6;
+                    }
+                }
+            }
+        }
+
+        function resetEnemies() {
+            for (var r = 0; r < rowCount; r++) {
+                for (var c = 0; c < colCount; c++) {
+                    var array = rowColArray(c, r);
+
+                    if (platArray[array] == enemySpawn) {
+                        var newEnemy = new enemyClass();
+
+                        newEnemy.x = c * platWidth + platWidth / 2 - enemyWidth / 2;
+                        newEnemy.y = r * platHeight;
+                        newEnemy.velX = -1;
+
+                        enemy.push(newEnemy);
+                    }
+                }
+            }
+        }
+
+        var enemy = [];
+
+        var enemyWidth = 20;
+        var enemyHeight = 20;
+
+        function enemyClass() {
+            this.x = 0;
+            this.y = 0;
+            this.w = enemyWidth;
+            this.h = enemyHeight;
+            this.velX = -1;
+            this.velY = 0;
+            this.isDrawn = false;
+            this.color = "red";
+
+            this.move = function () {
+                this.x += this.velX;
+                this.y += this.velY;
+            }
+            this.draw = function () {
+                if (this.isDrawn) {
+                    drawRect(this.x, this.y, this.w, this.h, this.color)
+                }
+            }
+        }
+
+
+        function checkCollision() {
+            for (var i = 0; i < plat.length; i++) {
+                if (plat[i].isDrawn) {
+
+
+                    //Top Of Platform
+                    if (playerX + playerWidth > plat[i].x &&
+                        playerX < plat[i].x + plat[i].w &&
+                        playerY + playerHeight >= plat[i].y &&
+                        playerY + playerHeight <= plat[i].y + 5 &&
+                        yVelocity > 0) {
+
+                        if (yVelocity > 1) {
+                            for (var d = 0; d < 10; d++) {
+                                var newDebris = new debrisClass();
+                                newDebris.color = plat[i].color;
+
+                                debris.push(newDebris);
+                            }
+                        }
+
+
+                        playerY = plat[i].y - playerHeight;
+                        onGround = true;
+                        gravity = 0;
+                        yVelocity = 0;
+                        if (plat[i].array == bounce) {
+                            yVelocity = -6.5;
+                        }
+                        if (plat[i].array == breakable) {
+                            plat.splice(i, 1);
+                        }
+                    }
+
+                    //Bottom Of Platform
+                    else if (playerX + playerWidth > plat[i].x &&
+                        playerX < plat[i].x + plat[i].w &&
+                        playerY >= plat[i].y + plat[i].h - 3 &&
+                        playerY <= plat[i].y + plat[i].h &&
+                        yVelocity < 0) {
+                        yVelocity = 0.2;
+                        playerY = plat[i].y + plat[i].h;
+
+                        if (plat[i].array == bottomHit) {
+                            plat.splice(i, 1);
+                        }
+                    }
+
+                    //Left Of Platform
+                    else if (playerX + playerWidth >= plat[i].x &&
+                        playerX <= plat[i].x + 1 &&
+                        playerY + playerHeight > plat[i].y &&
+                        playerY <= plat[i].y + plat[i].h &&
+                        xVelocity > 0) {
+                        xVelocity = 0;
+                        playerX = plat[i].x - playerWidth - 1;
+                    }
+
+                    //Right Of Platform
+                    else if (playerX <= plat[i].x + plat[i].w &&
+                        playerX >= plat[i].x + plat[i].w - 2 &&
+                        playerY + playerHeight > plat[i].y &&
+                        playerY <= plat[i].y + plat[i].h + 1 &&
+                        xVelocity < 0) {
+                        xVelocity = 0;
+                        playerX = plat[i].x + plat[i].w + 1;
+                    }
+                }
+            }
+
+
+            //Entire Platform Collision Backup
+            for (var i = 0; i < plat.length; i++) {
+                if (plat[i].isDrawn) {
+                    if (playerX + playerWidth + 1 >= plat[i].x &&
+                        playerX - 1 <= plat[i].x + plat[i].w &&
+                        playerY + playerHeight + 1 >= plat[i].y &&
+                        playerY <= plat[i].y + plat[i].h + 1) {
+
+
+
+                    }
+                }
+            }
+
+            if (playerX <= 0) {
+                playerX = 0;
+                xVelocity = 0;
+            }
+            if (playerX + playerWidth >= mapWidth) {
+                playerX = mapWidth - playerWidth;
+                xVelocity = 0;
+            }
+            if (playerY <= 0) {
+                playerY = 0;
+                yVelocity = 0;
+            }
+
+            if (playerY + playerHeight >= mapHeight) {
+                playerY = mapHeight - playerHeight;
+                yVelocity = 0;
+                onGround = true;
+                gravity = 0;
+            }
+        }
+
+        function checkEnemyCollision() {
+            for (var en = 0; en < enemy.length; en++) {
+                if (enemy[en].isDrawn) {
+                    if (playerX + playerWidth > enemy[en].x &&
+                        playerX < enemy[en].x + enemy[en].w &&
+                        playerY + playerHeight >= enemy[en].y &&
+                        playerY + playerHeight <= enemy[en].y + 10 &&
+                        yVelocity > 0) {
+                        enemy.splice(en, 1);
+                        yVelocity *= -0.4;
+                    }
+                    else if (playerX + playerWidth >= enemy[en].x &&
+                        playerX <= enemy[en].x + 10 &&
+                        playerY + playerHeight >= enemy[en].y &&
+                        playerY + playerHeight <= enemy[en].y + enemy[en].h) {
+                        playerReset();
+                        enemyReset();
+                    }
+                    else if (playerX <= enemy[en].x + enemy[en].w &&
+                        playerX >= enemy[en].x + enemy[en].w - 10 &&
+                        playerY + playerHeight >= enemy[en].y &&
+                        playerY + playerHeight <= enemy[en].y + enemy[en].h) {
+                        playerReset();
+                        enemyReset();
+                    }
+                }
+                for (var pl = 0; pl < plat.length; pl++) {
+                    //Right
+                    if (enemy[en].x <= plat[pl].x + plat[pl].w &&
+                        enemy[en].x >= plat[pl].x + plat[pl].w - 5 &&
+                        enemy[en].y + enemy[en].h > plat[pl].y &&
+                        enemy[en].y < plat[pl].y + plat[pl].h &&
+                        enemy[en].velX < 0) {
+                        enemy[en].velX *= -1;
+                    }
+
+                    //Left
+                    if (enemy[en].x + enemy[en].w >= plat[pl].x &&
+                        enemy[en].x + enemy[en].w <= plat[pl].x + 5 &&
+                        enemy[en].y + enemy[en].h > plat[pl].y &&
+                        enemy[en].y < plat[pl].y + plat[pl].h &&
+                        enemy[en].velX > 0) {
+                        enemy[en].velX *= -1;
+                    }
+                }
+            }
+        }
+
+        document.addEventListener("keydown", keyDown);
+        document.addEventListener("keyup", keyUp);
+
+        function keyDown(e) {
+            if (e.keyCode == "37") {
+                xVelocity = -2.5;
+                e.preventDefault();
+            }
+            if (e.keyCode == "38") {
+                jump();
+                e.preventDefault();
+            }
+            if (e.keyCode == "39") {
+                xVelocity = 2.5;
+                e.preventDefault();
+            }
+        }
+        function keyUp(e) {
+            if (e.keyCode == "37" ||
+                e.keyCode == "39") {
+                xVelocity = 0;
+            }
+        }
+
+        function drawPlatsOnScreen() {
+            for (var i = 0; i < plat.length; i++) {
+                //plat[i].draw();
+
+                if (plat[i].x <= playerX + canvas.width &&
+                    plat[i].x + plat[i].w >= playerX - canvas.width &&
+                    plat[i].y <= playerY + canvas.height &&
+                    plat[i].y + plat[i].h >= playerY - canvas.height) {
+                    plat[i].draw();
+                }
+
+            }
+        }
+
+        function drawCloudsOnScreen() {
+            for (var i = 0; i < cloud.length; i++) {
+
+                if (cloud[i].x <= playerX + canvas.width &&
+                    cloud[i].x + cloud[i].w >= playerX - canvas.width &&
+                    cloud[i].y <= playerY + canvas.height &&
+                    cloud[i].y + cloud[i].h >= playerY - canvas.height) {
+
+                    drawRect(cloud[i].x, cloud[i].y, cloud[i].w, cloud[i].h, "white")
+                }
+            }
+        }
+
+        function drawEnemiesOnScreen() {
+            for (var i = 0; i < enemy.length; i++) {
+                if (enemy[i].x + enemy[i].w >= playerX - canvas.width &&
+                    enemy[i].x <= playerX + canvas.width &&
+                    enemy[i].y + enemy[i].h >= playerY - canvas.height &&
+                    enemy[i].y <= playerY + canvas.height) {
+
+                    enemy[i].isDrawn = true;
+
+                    enemy[i].move();
+                    enemy[i].draw();
+                }
+            }
+        }
+
+
+        function moveCamera() {
+
+            ctx.save();
+            //ctx.scale(0.5, 0.5);
+
+            var panX = -playerX - playerWidth / 2 + canvas.width / 2;
+
+            var panY = -playerY - playerHeight / 2 + canvas.height / 2;
+
+            if (playerX >= canvas.width / 2 &&
+                playerX < mapWidth - canvas.width / 2) {
+                ctx.translate(panX, 0);
+            }
+            else if (playerX >= mapWidth - canvas.width / 2) {
+                ctx.translate(-mapWidth + canvas.width, 0)
+            }
+
+            if (playerY >= canvas.height / 2 &&
+                playerY < mapHeight - canvas.height / 2) {
+                ctx.translate(0, panY);
+            }
+            else if (playerY >= mapHeight - canvas.height / 2) {
+                ctx.translate(0, -mapHeight + canvas.height)
+            }
+
+
+            drawPlatsOnScreen();
+
+            drawEnemiesOnScreen();
+
+            drawDebris();
+
+            drawCloudsOnScreen();
+
+            grd = ctx.createLinearGradient(playerX, playerY + 5, playerX, playerY + 10);
+
+            grd.addColorStop(0, "tan");
+            grd.addColorStop(1, "crimson");
+
+            drawPlayer();
+
+            ctx.restore();
+
+        }
+
+        function draw() {
+            drawRect(-200, -200, 4400, 4400, "skyblue");
+            moveCamera();
+
+            var debugP = document.getElementById("debugging");
+
+            //debugP.innerHTML = ;
+
+            playerX += xVelocity;
+            playerY += (yVelocity += gravity);
+
+
+
+            onGround = false;
+
+            if (onGround == false) {
+                gravity = (9.81 / 60);
+            }
+
+            checkCollision();
+
+            checkEnemyCollision();
+
+
+            if (yVelocity > 4.8) {
+                yVelocity = 4.8;
+            }
+        }
+
+        function drawDebris() {
+            for (var i = 0; i < debris.length; i++) {
+                debris[i].move();
+                debris[i].draw();
+            }
+            for (var d = 0; d < debris.length; d++) {
+                if (debris[d].cyclesLeft == 0) {
+                    debris.splice(d, 1);
+                }
+            }
+        }
+
+        function drawPlayer() {
+            ctx.beginPath();
+            ctx.fillStyle = grd;
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 1;
+            ctx.rect(playerX, playerY, playerWidth, playerHeight - 7);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+
+            drawRect(playerX + 2, playerY + 2, 1, 1, "black");
+            drawRect(playerX + playerWidth - 3, playerY + 2, 1, 1, "black");
+            drawRect(playerX + 2.5, playerY + 5, 5, 1, "black");
+
+
+
+            ctx.beginPath();
+            ctx.fillStyle = "crimson";
+            ctx.rect(playerX - 3, playerY + 8, 3, 7);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+
+            ctx.beginPath();
+            ctx.fillStyle = "#0A8ED5";
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "black";
+            ctx.rect(playerX, playerY + playerHeight - 7, 4, 7);
+            ctx.rect(playerX + playerWidth - 4, playerY + playerHeight - 7, 4, 7);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+
+            ctx.beginPath();
+            ctx.fillStyle = "crimson";
+            ctx.rect(playerX + playerWidth, playerY + 8, 3, 7);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        function jump() {
+            if (yVelocity == 0) {
+                yVelocity = -5.4;
+            }
+        }
+
+        function left() {
+            xVelocity = -2.5;
+
+        }
+
+        function right() {
+            xVelocity = 2.5;
+
+        }
+
+        function clearMove() {
+            xVelocity = 0;
+        }
+
+    </script>
+    <style>
+        button:focus {
+            outline: none;
+        }
+
+        button {
+            width: 150px;
+            height: 50px;
+            font-weight: bold;
+            font-size: 20px;
+            margin: 5px;
+            border-radius: 5px;
+            background: #999;
+        }
+
+        body {
+            background: #444;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="325" height="400"
+        style="display: block; margin: 10px auto; border: 3px solid black; border-radius: 5px;"></canvas>
+
+    <p id="debugging"></p>
+
+    <div id="div1" style="display:flex; justify-content:center;">
+
+        <button onmousedown="left()" onmouseup="clearMove()" ontouchstart="left()" ontouchend="clearMove()"></button>
+        <button onclick="jump()">Jump</button>
+        <button onmousedown="right()" onmouseup="clearMove()" ontouchstart="right()" ontouchend="clearMove()"></button>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,378 @@
+<!-- This Code Is 100% Plain JavaScript
+      With No JQuery Or Images -->
+
+<!-- Check Out My Other Games If You 
+      Liked This One -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<script>
+
+
+		var mapWidth = 10000;
+		var mapHeight = 10000;
+		var numberOfPlats = 15000;
+
+
+		var plat = [];
+		window.onload = function () {
+			canvas =
+				document.getElementById("canvas");
+			ctx = canvas.getContext("2d");
+			setInterval(draw, 1000 / 60);
+
+			for (var i = 0; i < numberOfPlats; i++) {
+				var newPlat = new platClass()
+				plat.push(newPlat);
+			}
+
+			plat[1].x = 0;
+			plat[1].y = 0;
+			plat[1].w = mapWidth;
+			plat[1].h = 2;
+
+			plat[2].x = 0;
+			plat[2].y = 0;
+			plat[2].w = 2;
+			plat[2].h = mapHeight;
+
+			plat[3].x = mapWidth - 2;
+			plat[3].y = 0;
+			plat[3].w = 2;
+			plat[3].h = mapHeight;
+
+			plat[4].x = 0;
+			plat[4].y = mapHeight - 2;
+			plat[4].w = mapWidth;
+			plat[4].h = 2;
+		}
+
+		//Rectangle Code
+		function drawRect(topLeftX, topLeftY, width, height, color) {
+			ctx.fillStyle = color; ctx.fillRect(topLeftX, topLeftY, width, height);
+		}
+		//Circle Code
+		function drawCircle(x, y, radius, color) {
+			ctx.beginPath();
+			ctx.fillStyle = color;
+			ctx.arc(x, y, radius, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.closePath();
+		}
+
+		function platClass() {
+			this.x = Math.random() * mapWidth;
+			this.y = Math.random() * mapHeight;
+			this.w = Math.random() * 70 + 30;
+			this.h = Math.random() * 10 + 20;
+
+			this.isDrawn = false;
+
+			var colorPicker = Math.random();
+
+			if (colorPicker >= 0 &&
+				colorPicker <= 0.2) {
+				this.color = "white";
+			}
+			if (colorPicker > 0.2 &&
+				colorPicker <= 0.4) {
+				this.color = "crimson";
+			}
+			if (colorPicker > 0.4 &&
+				colorPicker <= 0.6) {
+				this.color = "teal";
+			}
+			if (colorPicker > 0.6 &&
+				colorPicker <= 0.8) {
+				this.color = "orange";
+			}
+			if (colorPicker > 0.8 &&
+				colorPicker <= 1) {
+				this.color = "purple";
+			}
+
+			this.draw = function () {
+				this.isDrawn = true;
+				ctx.beginPath();
+				ctx.fillStyle = this.color;
+				ctx.strokeStyle = "black";
+				ctx.lineWidth = 2;
+				ctx.rect(this.x, this.y, this.w, this.h);
+				ctx.fill();
+				ctx.stroke();
+				ctx.closePath();
+			}
+		}
+
+		var debris = [];
+
+		function debrisClass() {
+			this.x = playerX + playerWidth / 2;
+			this.y = playerY + playerHeight;
+
+			this.velX = 2 - Math.random() * 4;
+			this.velY = Math.random() * -1;
+			this.cyclesLeft = 15 + Math.random() * 15;
+			this.color = "white";
+
+			this.move = function () {
+				this.cyclesLeft--;
+				this.radius = this.cyclesLeft / 10;
+				this.x += this.velX;
+				this.y += this.velY;
+			}
+
+			this.draw = function () {
+				if (this.cyclesLeft > 0) {
+					drawRect(this.x, this.y, this.radius, this.radius, this.color);
+				}
+			}
+		}
+
+
+		var playerX = mapWidth / 2;
+		var playerY = mapHeight / 4;
+		var playerWidth = 10;
+		var playerHeight = 20
+		var xVelocity = 0;
+		var yVelocity = 0;
+		var gravity = 0;
+		var onGround = true;
+
+
+		function checkCollision() {
+			for (var i = 0; i < plat.length; i++) {
+				if (plat[i].isDrawn) {
+					if (playerX + playerWidth >= plat[i].x &&
+						playerX <= plat[i].x + plat[i].w &&
+						playerY + playerHeight >= plat[i].y &&
+						playerY + playerHeight <= plat[i].y + 5 &&
+						yVelocity > 0) {
+
+						if (yVelocity > 1) {
+							for (var d = 0; d < 10; d++) {
+								var newDebris = new debrisClass();
+								newDebris.color = plat[i].color;
+
+								debris.push(newDebris);
+							}
+						}
+
+						playerY = plat[i].y - playerHeight;
+						onGround = true;
+						gravity = 0;
+						yVelocity = 0;
+
+					}
+					if (playerX + playerWidth >= plat[i].x &&
+						playerX <= plat[i].x + 3 &&
+						playerY + playerHeight > plat[i].y &&
+						playerY + playerHeight <= plat[i].y + plat[i].h + playerHeight) {
+						xVelocity = 0;
+						playerX = plat[i].x - playerWidth;
+					}
+
+					if (playerX <= plat[i].x + plat[i].w + 1 &&
+						playerX >= plat[i].x + plat[i].w - 5 &&
+						playerY + playerHeight > plat[i].y &&
+						playerY + playerHeight <= plat[i].y + plat[i].h + playerHeight) {
+						xVelocity = 0;
+						playerX = plat[i].x + plat[i].w + 1;
+					}
+
+					if (playerX + playerWidth >= plat[i].x &&
+						playerX <= plat[i].x + plat[i].w &&
+						playerY >= plat[i].y + plat[i].h - 3 &&
+						playerY <= plat[i].y + plat[i].h + 1 &&
+						yVelocity < 0) {
+						yVelocity = 0.2;
+						playerY = plat[i].y + plat[i].h;
+					}
+				}
+			}
+		}
+
+		document.addEventListener("keydown", keyDown);
+		document.addEventListener("keyup", keyUp);
+
+		function keyDown(e) {
+			if (e.keyCode == "37") {
+				xVelocity = -2.5;
+				e.preventDefault();
+			}
+			if (e.keyCode == "38") {
+				jump();
+				e.preventDefault();
+			}
+			if (e.keyCode == "39") {
+				xVelocity = 2.5;
+				e.preventDefault();
+			}
+		}
+		function keyUp(e) {
+			if (e.keyCode == "37" ||
+				e.keyCode == "39") {
+				xVelocity = 0;
+			}
+		}
+
+		function drawPlatsOnScreen() {
+			for (var i = 0; i < plat.length; i++) {
+				//plat[i].draw();
+
+				if (plat[i].x <= playerX + canvas.width &&
+					plat[i].x + plat[i].w >= playerX - canvas.width &&
+					plat[i].y <= playerY + canvas.height &&
+					plat[i].y + plat[i].h >= playerY - canvas.height) {
+					plat[i].draw();
+				}
+
+			}
+		}
+
+
+		function moveCamera() {
+
+			ctx.save();
+			ctx.scale(1.1, 1.1);
+
+			var panX = -playerX - playerWidth / 2 + canvas.width / 2 - 11;
+
+			var panY = -playerY - playerHeight / 2 + canvas.height / 2 - 11;
+
+			if (playerX >= canvas.width / 2 &&
+				playerX < mapWidth - canvas.width / 2) {
+				ctx.translate(panX, 0);
+			}
+			else if (playerX >= mapWidth - canvas.width / 2) {
+				ctx.translate(-mapWidth + canvas.width - 30, 0)
+			}
+
+			if (playerY >= canvas.height / 2 &&
+				playerY < mapHeight - canvas.height / 2) {
+				ctx.translate(0, panY);
+			}
+			else if (playerY >= mapHeight - canvas.height / 2) {
+				ctx.translate(0, -mapHeight + canvas.height - 35)
+			}
+
+
+			drawPlatsOnScreen();
+
+			drawDebris();
+
+			drawPlayer();
+			ctx.restore();
+
+		}
+
+		function draw() {
+			drawRect(0, 0, mapWidth, mapHeight, "grey")
+			moveCamera();
+
+			var debugP = document.getElementById("debugging");
+
+			//debugP.innerHTML = ;
+
+			playerX += xVelocity;
+			playerY += (yVelocity += gravity);
+
+
+
+			onGround = false;
+
+			if (onGround == false) {
+				gravity = 0.1;
+			}
+
+			checkCollision();
+
+
+			if (yVelocity >= 4.9) {
+				yVelocity = 4.9;
+			}
+		}
+
+		function drawDebris() {
+			for (var i = 0; i < debris.length; i++) {
+				debris[i].move();
+				debris[i].draw();
+			}
+			for (var d = 0; d < debris.length; d++) {
+				if (debris[d].cyclesLeft == 0) {
+					debris.splice(d, 1);
+				}
+			}
+		}
+
+		function drawPlayer() {
+			ctx.beginPath();
+			ctx.fillStyle = "teal";
+			ctx.strokeStyle = "black";
+			ctx.lineWidth = 1;
+			ctx.rect(playerX, playerY, playerWidth, playerHeight);
+			ctx.fill();
+			ctx.stroke();
+			ctx.closePath();
+		}
+
+		function jump() {
+			if (yVelocity == 0) {
+				yVelocity = -4;
+			}
+		}
+
+		function left() {
+			xVelocity = -2.5;
+		}
+
+		function right() {
+			xVelocity = 2.5;
+		}
+
+		function clearMove() {
+			xVelocity = 0;
+		}
+
+	</script>
+	<style>
+		button:focus {
+			outline: none;
+		}
+
+		button {
+			width: 150px;
+			height: 50px;
+			font-weight: bold;
+			font-size: 20px;
+			margin: 5px;
+			border-radius: 5px;
+			background: #999;
+		}
+
+		body {
+			background: #444;
+		}
+	</style>
+</head>
+
+<body>
+	<canvas id="canvas" width="325" height="400"
+		style="display: block; margin: 10px auto; border: 3px solid black; border-radius: 5px;"></canvas>
+
+	<p id="debugging"></p>
+
+	<div id="div1" style="display:flex; justify-content:center;">
+		<button onclick="jump()">Jump</button>
+	</div>
+	<div id="div2" style="display:flex; justify-content:center">
+		<button onmousedown="left()" onmouseup="clearMove()" ontouchstart="left()" ontouchend="clearMove()"></button>
+		<button onmousedown="right()" onmouseup="clearMove()" ontouchstart="right()" ontouchend="clearMove()"></button>
+	</div>
+
+</body>
+
+</html>

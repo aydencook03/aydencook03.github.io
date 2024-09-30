@@ -1,584 +1,590 @@
 <!DOCTYPE html>
 <html lang='en'>
+
 <head>
     <meta charset="UTF-8" />
     <meta name='viewport' content='width=device-width,height=device-height, initial-scale=1.0' />
     <title>N-Body Physics Simulation</title>
-<script>
+    <script>
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-// event handling
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // event handling
 
-window.onload = function() {reset()}
-document.addEventListener('keydown', keyDown);
-document.addEventListener('mousedown', mouseDown);
-document.addEventListener('mouseup', mouseUp);
-document.addEventListener('mousemove', mouseMove);
-document.addEventListener('touchstart', touchStart);
-document.addEventListener('touchmove', touchMove, {passive: false});
-document.addEventListener('touchend', touchEnd);
-window.addEventListener('resize', resize);
+        window.onload = function () { reset() }
+        document.addEventListener('keydown', keyDown);
+        document.addEventListener('mousedown', mouseDown);
+        document.addEventListener('mouseup', mouseUp);
+        document.addEventListener('mousemove', mouseMove);
+        document.addEventListener('touchstart', touchStart);
+        document.addEventListener('touchmove', touchMove, { passive: false });
+        document.addEventListener('touchend', touchEnd);
+        window.addEventListener('resize', resize);
 
-nothingGrabbed = true;
+        nothingGrabbed = true;
 
-mouse = {
-    down: false,
-    start: {
-        x: null,
-        y: null,
-    },
-    x: 0,
-    y: 0,
-    end: {
-        x: null,
-        y: null
-    }
-}
-
-function keyDown(data) {
-    if(data.key == "r") {
-        clearInterval(loop);
-        reset();
-    }
-    else if(data.key == 'g') {
-        gravityOn = !gravityOn;
-    }
-    else if(data.key == 'Delete') {
-        for(i = 0; i < bodies.length ; i++) {
-            if(((mouse.x - bodies[i].x)**2 + (mouse.y - bodies[i].y)**2) <= bodies[i].radius**2) {
-                bodies.splice(i, 1);
+        mouse = {
+            down: false,
+            start: {
+                x: null,
+                y: null,
+            },
+            x: 0,
+            y: 0,
+            end: {
+                x: null,
+                y: null
             }
         }
-    }
-    else if(data.key == 'c') {
-        gravity_c *= -1;
-    }
-    else if(data.key == 'f') {
-        falling = !falling;
-    }
-    else if(data.key == 'a') {
-        acceleration *= -1;
-    }
-    else if(data.key == 'n') {
-        Body.create();
-    }
-    else if(data.key == 'p') {
-        running = !running;
-    }
-}
-function mouseDown(data) {
-    mouse.down = true;
-    nothingGrabbed = true;
-    mouse.x = data.clientX;
-    mouse.y = window.innerHeight - data.clientY;
-}
-function mouseUp(data) {
-    mouse.down = false;
-    nothingGrabbed = true;
-    for(let i = 0; i < bodies.length; i++) {
-        bodies[i].grabbed = false
-    }
-}
-function mouseMove(data) {
-    mouse.x = data.clientX;
-    mouse.y = window.innerHeight - data.clientY;
-}
-function touchStart(data) {
-    mouse.down = true;
-    nothingGrabbed = true;
-    mouse.x = data.touches[0].clientX;
-    mouse.y = window.innerHeight - data.touches[0].clientY;
-}
-function touchMove(data) {
-    mouse.x = data.touches[0].clientX;
-    mouse.y = window.innerHeight - data.touches[0].clientY;
-    data.preventDefault();
-}
-function touchEnd(data) {
-    mouse.down = false;
-    nothingGrabbed = true;
-    for(let i=0;i<bodies.length;i++) {
-        bodies[i].grabbed = false;
-    }
-}
-function resize(data) {
-    scale = Math.min(window.innerWidth, window.innerHeight);
-    canvas.style.width = `${window.innerWidth}px`;
-    canvas.style.height =  `${window.innerHeight}px`;
-    ratio = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * ratio;
-    canvas.height = window.innerHeight * ratio;
-    
-    ctx.scale(ratio, ratio);
-}
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Initialize Variables
-
-function reset() {
-    canvas = document.getElementById("canvas");
-    canvas.style.background = 'rgb(70, 70, 70)';
-    ctx = canvas.getContext('2d');
-    
-    resize();
-    
-    fps = 120;
-    running = true;
-    
-    
-    loop = setInterval(main, 1000/fps);
-
-    
-    gravityOn = false // if true, objects are gravitationally attracted to each other
-    gravity_c = 334000 // universe's gravitational constant
-
-    boundaryCollision = true // if true, objects collide with edges of canvas
-    wallDampen = 0.7 // number to multiply by when an objects hit a wall
-
-    bodyCollision = true // if true, bodies will collide with each other
-    bodyDampen = 1 // number to multiply when two objects collide
-
-    falling = true // if true, objects will fall to the bottom of the screen
-    acceleration = 800 // rate at which objects fall
-    
-    Body.clear() // clears all bodies
-    
-    
-    const bounds = 200;
-    for(let i = 0; i<70; i++) { // randomly place bodies
-        Body.create({
-            x: Math.floor(Math.random()*window.innerWidth),
-            y: Math.floor(Math.random()*window.innerHeight),
-            a: Math.random()*Math.PI*2,
-            xV: Math.floor(Math.random() * (bounds - -bounds)) + -bounds,
-            yV: Math.floor(Math.random() * (bounds - -bounds)) + -bounds,
-            mass: Math.ceil(Math.random()*25)
-        })
-    }
-    
-    /*
-    Body.create({ // big first
-        x: window.innerWidth/2,
-        y: window.innerHeight/2,
-        color: 'crimson',
-        mass: 100
-    })
-    Body.create({ // small second
-        mass: 20,
-        radius: 10,
-        color: 'teal',
-        x: bodies[0].x + bodies[0].radius + 300
-    }); 
-    */
-    
-    /*
-    Body.create({
-        x: window.innerWidth/2 - 50,
-        xV: 20,
-        yV: 0,
-        aV: 0,
-        y: window.innerHeight/2 + 0,
-        mass: 10
-    });
-    Body.create({
-        x: window.innerWidth/2 + 50,
-        xV: 0,
-        aV: 0,
-        y: window.innerHeight/2,
-        mass: 10
-    });
-    */
-    
-    /*
-    Body.create({
-    x: window.innerWidth/2, 
-    y: window.innerHeight/2, 
-    mass: 24, 
-    xV: -10.83
-    });
-    Body.create({
-    x: window.innerWidth/2, 
-    y: window.innerHeight/2 + 150, 
-    mass: 1, 
-    xV: 260, 
-    color: 'teal'
-    });  */
-    
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Body Type Object
-
-function Body(params) {
-    this.x = params.x || window.innerWidth/2;
-    this.y = params.y || window.innerHeight/2;
-    this.oldX = null;
-    this.oldY = null;
-    this.a = params.a || 0;
-    
-    this.xV = params.xV || 0;
-    this.yV = params.yV || 0;
-    this.aV = params.aV || 0;
-    
-    this.xA = params.xA || 0;
-    this.yA = params.yA || 0;
-    this.aA = params.aA || 0;
-    
-    this.grabbed = false;
-    
-    this.edgeBlock = params.edgeBlock || boundaryCollision;
-    
-    this.gravity = params.gravityOn || true;
-    
-    this.mass = params.mass || 6;
-    this.density = params.density || 0.008;
-    this.radius = params.radius || (this.mass/(Math.PI*this.density))**0.5;
-    this.color = params.color || 'crimson';
-    this.lineWidth = params.lineWidth || 2;
-}
-
-Body.create = function(params) { // utility function
-    if(typeof bodies === 'undefined') {
-        bodies = [];
-    }
-    if(typeof params === 'undefined') {
-        params = {};
-    }
-    return bodies.push(new Body(params));
-}
-
-Body.clear = function() { // utility function
-    return bodies = [];
-}
-
-Body.prototype.move = function() { // available to all instances, but not a part of them
-    
-    //this.xV = (this.x - this.oldX)*fps;
-    //this.yV = (this.y - this.oldY)*fps;
-    this.xV += this.xA/fps;
-    this.yV += this.yA/fps;
-    this.oldX = this.x;
-    this.oldY = this.y;
-    this.x += this.xV/fps;
-    this.y += this.yV/fps;
-    
-    /*
-    // Störmer-Verlet. Is velocity implicit.
-    const nextX = 2*this.x - this.oldX + this.xA*(1/fps)**2;
-    const nextY = 2*this.y - this.oldY + this.yA*(1/fps)**2;
-    this.xV = (nextX - this.x)*fps;
-    this.yV = (nextY - this.y)*fps;
-    this.oldX = this.x;
-    this.oldY = this.y;
-    this.x = nextX;
-    this.y = nextY;
-    */
-    
-    if(this.edgeBlock) {
-        if(this.x + this.radius > window.innerWidth) {
-            this.x = window.innerWidth - this.radius;
-            this.xV *= -wallDampen;
-        }
-        else if(this.x - this.radius < 0) {
-            this.x = this.radius;
-            this.xV *= -wallDampen;
-        }
-        if(this.y + this.radius > window.innerHeight) {
-            this.y = window.innerHeight - this.radius;
-            this.yV *= -wallDampen;
-        }
-        else if(this.y - this.radius < 0) {
-            this.y = this.radius;
-            this.yV *= -wallDampen;
-        }
-    }
-    if(this.grabbed) {
-        this.xA = 0;
-        this.yA = 0;
-        
-        this.x = mouse.x;
-        this.y = mouse.y;
-        this.xV = (this.x - this.oldX)*fps;
-        this.yV = (this.y - this.oldY)*fps;
-    }
-}
-
-Body.prototype.draw = function() { // available to all instances, but not a part of them
-    ctx.beginPath();
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = this.lineWidth;
-    ctx.fillStyle =  this.color;
-    ctx.arc(this.x, window.innerHeight - this.y, this.radius, 0, Math.PI*2, true);
-    ctx.fill();
-    ctx.stroke();
-    ctx.closePath()
-    
-    ctx.beginPath();
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = this.linewidth;
-    ctx.moveTo(this.x, window.innerHeight - this.y);
-    ctx.lineTo(this.x + this.radius*Math.cos(this.a), window.innerHeight - (this.y + this.radius*Math.sin(this.a)))
-    ctx.stroke();
-    ctx.closePath();
-    
-    //draw force vector scaled down
-    ctx.beginPath();
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 2;
-    ctx.moveTo(this.x, window.innerHeight - this.y);
-    let val = 3900;
-    ctx.lineTo(this.x + this.mass*this.xA/val, window.innerHeight - (this.y + this.mass*this.yA/val));
-    ctx.stroke();
-    ctx.closePath();
-}
-
-// calculates gravitational attraction to 'otherObject'
-Body.prototype.gravityCalc = function(otherObject) { // available to all instances, but not a part of them
-    const x1 = this.x;
-    const y1 = this.y;
-    const x2 = otherObject.x;
-    const y2 = otherObject.y;
-    const dist = ((x2-x1)**2 + (y2-y1)**2)**0.5;
-    const strength = (gravity_c*otherObject.mass)/(dist**2); // F = Gm1m2/r^2
-    const xA = strength * (x2 - x1)/dist;
-    const yA = strength * (y2 - y1)/dist;
-    
-    return [xA, yA]
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Logic Code
-
-const bodyHandle = function() {
-    for(let i = 0; i < bodies.length; i++) {
-        
-        if(mouse.down && nothingGrabbed) {
-            if(Math.abs((mouse.x - bodies[i].x)**2 + (mouse.y - bodies[i].y)**2) <= bodies[i].radius**2) {
-                bodies[i].grabbed = true;
-                nothingGrabbed = false;
+        function keyDown(data) {
+            if (data.key == "r") {
+                clearInterval(loop);
+                reset();
             }
-        }
-        
-        bodies[i].draw()
-        
-        if(running) {
-            if(falling) {
-                bodies[i].yA -= acceleration;
+            else if (data.key == 'g') {
+                gravityOn = !gravityOn;
             }
-            bodies[i].move();
-        }
-        
-        bodies[i].xA = 0;
-        bodies[i].yA = 0;
-        let collidingPairs = []
-        if(gravityOn || bodyCollision) {
-            for(b = 0; b < bodies.length; b++) {
-                if(i != b) {
-                    if(bodyCollision) {
-                        const x1 = bodies[i].x;
-                        const y1 = bodies[i].y;
-                        const x2 = bodies[b].x;
-                        const y2 = bodies[b].y;
-                        const rSum = bodies[i].radius + bodies[b].radius;
-                        const dist = { // vector
-                            i: x2 - x1,
-                            j: y2 - y1,
-                            mag: ((x2-x1)**2 + (y2-y1)**2)**0.5,
-                            norm: {
-                                i: (x2-x1)/(((x2-x1)**2 + (y2-y1)**2)**0.5),
-                                j: (y2-y1)/(((x2-x1)**2 + (y2-y1)**2)**0.5)
-                            }
-                        }
-                        if(dist.mag <= rSum) { // static collision
-                            const overlap = rSum - dist.mag;
-                            const iOldX = bodies[i].oldX;
-                            const iOldY = bodies[i].oldY;
-                            const bOldX = bodies[b].oldX;
-                            const bOldY = bodies[b].oldY;
-                            bodies[i].x -= overlap*bodies[b].mass/(bodies[i].mass+bodies[b].mass) * dist.norm.i;
-                            bodies[i].y -= overlap*bodies[b].mass/(bodies[i].mass+bodies[b].mass) * dist.norm.j;
-                            bodies[b].x += overlap*bodies[i].mass/(bodies[i].mass+bodies[b].mass) * dist.norm.i;
-                            bodies[b].y += overlap*bodies[i].mass/(bodies[i].mass+bodies[b].mass) * dist.norm.j;
-                            
-                            
-                            bodies[i].xV = (bodies[i].x - iOldX)*fps;
-                            bodies[i].yV = (bodies[i].y - iOldY)*fps;
-                            bodies[b].xV = (bodies[b].x - bOldX)*fps;
-                            bodies[b].yV = (bodies[b].y - bOldY)*fps; 
-                            
-                           
-                            collidingPairs.push([bodies[i], bodies[b]]);
-                        }
-                    }
-                    if(gravityOn) {
-                        if(bodies[i].gravity) {
-                            const accel = bodies[i].gravityCalc(bodies[b]);
-                            bodies[i].xA += accel[0];
-                            bodies[i].yA += accel[1];
-                        }
+            else if (data.key == 'Delete') {
+                for (i = 0; i < bodies.length; i++) {
+                    if (((mouse.x - bodies[i].x) ** 2 + (mouse.y - bodies[i].y) ** 2) <= bodies[i].radius ** 2) {
+                        bodies.splice(i, 1);
                     }
                 }
             }
+            else if (data.key == 'c') {
+                gravity_c *= -1;
+            }
+            else if (data.key == 'f') {
+                falling = !falling;
+            }
+            else if (data.key == 'a') {
+                acceleration *= -1;
+            }
+            else if (data.key == 'n') {
+                Body.create();
+            }
+            else if (data.key == 'p') {
+                running = !running;
+            }
         }
-        for(let c = 0; c < collidingPairs.length; c++) { // dynamic collision
-            const x1 = collidingPairs[c][0].x;
-            const y1 = collidingPairs[c][0].y;
-            const r1 = collidingPairs[c][0].radius;
-            const x2 = collidingPairs[c][1].x;
-            const y2 = collidingPairs[c][1].y;
-            const r2 = collidingPairs[c][1].radius;
-            const dist = { // vector from b1 to b2
-                    i: x2 - x1,
-                    j: y2 - y1,
-                    mag: ((x2-x1)**2 + (y2-y1)**2)**0.5,
-                    norm: {
-                        i: (x2-x1)/(((x2-x1)**2 + (y2-y1)**2)**0.5),
-                        j: (y2-y1)/(((x2-x1)**2 + (y2-y1)**2)**0.5)
-                    }
+        function mouseDown(data) {
+            mouse.down = true;
+            nothingGrabbed = true;
+            mouse.x = data.clientX;
+            mouse.y = window.innerHeight - data.clientY;
+        }
+        function mouseUp(data) {
+            mouse.down = false;
+            nothingGrabbed = true;
+            for (let i = 0; i < bodies.length; i++) {
+                bodies[i].grabbed = false
             }
-            const m1 = collidingPairs[c][0].mass;
-            const m2 = collidingPairs[c][1].mass;
-            
-            const norm = { // vector normal along 'wall' of collision
-                i: -dist.j/(((dist.i)**2 + (-dist.j)**2)**0.5),
-                j: dist.i/(((dist.i)**2 + (-dist.j)**2)**0.5)
+        }
+        function mouseMove(data) {
+            mouse.x = data.clientX;
+            mouse.y = window.innerHeight - data.clientY;
+        }
+        function touchStart(data) {
+            mouse.down = true;
+            nothingGrabbed = true;
+            mouse.x = data.touches[0].clientX;
+            mouse.y = window.innerHeight - data.touches[0].clientY;
+        }
+        function touchMove(data) {
+            mouse.x = data.touches[0].clientX;
+            mouse.y = window.innerHeight - data.touches[0].clientY;
+            data.preventDefault();
+        }
+        function touchEnd(data) {
+            mouse.down = false;
+            nothingGrabbed = true;
+            for (let i = 0; i < bodies.length; i++) {
+                bodies[i].grabbed = false;
             }
-            const perp = { // vector normal pointing from b1 to b2
-                i: dist.norm.i,
-                j: dist.norm.j
-            }
-            
-            const vel1 = { // vector of b1 velocity
-                i: collidingPairs[c][0].xV,
-                j: collidingPairs[c][0].yV,
-                dot: function(vect) {
-                    return collidingPairs[c][0].xV * vect.i + collidingPairs[c][0].yV * vect.j
-                }
-            }
-            const vel2 = { // vector of b2 velocity
-                i: collidingPairs[c][1].xV,
-                j: collidingPairs[c][1].yV,
-                dot: function(vect) {
-                    return collidingPairs[c][1].xV * vect.i + collidingPairs[c][1].yV * vect.j
-                }
-            }
-            
-            // new velocities along perp^ of b1 and b2
-            const nV1Perp = (vel1.dot(perp))*(m1-m2)/(m1+m2) + (vel2.dot(perp))*(2*m2)/(m1+m2);
-            const nV2Perp = (vel1.dot(perp))*(2*m1)/(m1+m2) + (vel2.dot(perp))*(m2-m1)/(m1+m2);
-            
-            /* testing rotation after collision
-            // velocities of the points of collision on b1 and b2
-            const pVel1M = vel1.dot(norm) + collidingPairs[c][0].aV*r1;
-            const pVel2M = vel2.dot(norm) + collidingPairs[c][1].aV*r2;
-            
-            // moment of inertia for b1 and b2
-            const I1 = 1/2 * m1 * r1**2;
-            const I2 = 1/2 * m2 * r2**2;
-            
-            // new velocities of the points of collisions on b1 and b2
-            const newpVel1M = ((I1-I2)/(I1+I2))*pVel1M + ((2*I2)/(I1+I2))*pVel2M;
-            const newpVel2M = ((2*I1)/(I1+I2))*pVel1M + ((I2-I1)/(I1+I2))*pVel2M;
-            
-            const vectToCol1 = { // vector from x1,y1 to point of collision on b1
-                i: r1*perp.i,
-                j: r1*perp.j
-            };
-            const vectToCol2 = { // vector from x2,y2 to point of collision on b2
-                i: r2*-perp.i,
-                j: r2*-perp.j
-            };
-            
-            // sign of cross product of pVelM and vectToCol
-            let vCrossR1 = (pVel1M*norm.i)*(vectToCol1.j) - (pVel1M*norm.j)*(vectToCol1.i);
-            vCrossR1 = vCrossR1/Math.abs(vCrossR1);
-            let vCrossR2 = (pVel2M*norm.i)*(vectToCol2.j) - (pVel2M*norm.j)*(vectToCol2.i);
-            vCrossR2 = vCrossR2/Math.abs(vCrossR2);
+        }
+        function resize(data) {
+            scale = Math.min(window.innerWidth, window.innerHeight);
+            canvas.style.width = `${window.innerWidth}px`;
+            canvas.style.height = `${window.innerHeight}px`;
+            ratio = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * ratio;
+            canvas.height = window.innerHeight * ratio;
 
-            
-            collidingPairs[c][0].aV = vCrossR1 * (newpVel1M)/r1;
-            collidingPairs[c][1].aV = vCrossR2 * (newpVel2M)/r2;
-            
-            /* draw collision point velocity vectors [debugging]
+            ctx.scale(ratio, ratio);
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Initialize Variables
+
+        function reset() {
+            canvas = document.getElementById("canvas");
+            canvas.style.background = 'rgb(70, 70, 70)';
+            ctx = canvas.getContext('2d');
+
+            resize();
+
+            fps = 120;
+            running = true;
+
+
+            loop = setInterval(main, 1000 / fps);
+
+
+            gravityOn = false // if true, objects are gravitationally attracted to each other
+            gravity_c = 334000 // universe's gravitational constant
+
+            boundaryCollision = true // if true, objects collide with edges of canvas
+            wallDampen = 0.7 // number to multiply by when an objects hit a wall
+
+            bodyCollision = true // if true, bodies will collide with each other
+            bodyDampen = 1 // number to multiply when two objects collide
+
+            falling = true // if true, objects will fall to the bottom of the screen
+            acceleration = 800 // rate at which objects fall
+
+            Body.clear() // clears all bodies
+
+
+            const bounds = 200;
+            for (let i = 0; i < 70; i++) { // randomly place bodies
+                Body.create({
+                    x: Math.floor(Math.random() * window.innerWidth),
+                    y: Math.floor(Math.random() * window.innerHeight),
+                    a: Math.random() * Math.PI * 2,
+                    xV: Math.floor(Math.random() * (bounds - -bounds)) + -bounds,
+                    yV: Math.floor(Math.random() * (bounds - -bounds)) + -bounds,
+                    mass: Math.ceil(Math.random() * 25)
+                })
+            }
+
+            /*
+            Body.create({ // big first
+                x: window.innerWidth/2,
+                y: window.innerHeight/2,
+                color: 'crimson',
+                mass: 100
+            })
+            Body.create({ // small second
+                mass: 20,
+                radius: 10,
+                color: 'teal',
+                x: bodies[0].x + bodies[0].radius + 300
+            }); 
+            */
+
+            /*
+            Body.create({
+                x: window.innerWidth/2 - 50,
+                xV: 20,
+                yV: 0,
+                aV: 0,
+                y: window.innerHeight/2 + 0,
+                mass: 10
+            });
+            Body.create({
+                x: window.innerWidth/2 + 50,
+                xV: 0,
+                aV: 0,
+                y: window.innerHeight/2,
+                mass: 10
+            });
+            */
+
+            /*
+            Body.create({
+            x: window.innerWidth/2, 
+            y: window.innerHeight/2, 
+            mass: 24, 
+            xV: -10.83
+            });
+            Body.create({
+            x: window.innerWidth/2, 
+            y: window.innerHeight/2 + 150, 
+            mass: 1, 
+            xV: 260, 
+            color: 'teal'
+            });  */
+
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Body Type Object
+
+        function Body(params) {
+            this.x = params.x || window.innerWidth / 2;
+            this.y = params.y || window.innerHeight / 2;
+            this.oldX = null;
+            this.oldY = null;
+            this.a = params.a || 0;
+
+            this.xV = params.xV || 0;
+            this.yV = params.yV || 0;
+            this.aV = params.aV || 0;
+
+            this.xA = params.xA || 0;
+            this.yA = params.yA || 0;
+            this.aA = params.aA || 0;
+
+            this.grabbed = false;
+
+            this.edgeBlock = params.edgeBlock || boundaryCollision;
+
+            this.gravity = params.gravityOn || true;
+
+            this.mass = params.mass || 6;
+            this.density = params.density || 0.008;
+            this.radius = params.radius || (this.mass / (Math.PI * this.density)) ** 0.5;
+            this.color = params.color || 'crimson';
+            this.lineWidth = params.lineWidth || 2;
+        }
+
+        Body.create = function (params) { // utility function
+            if (typeof bodies === 'undefined') {
+                bodies = [];
+            }
+            if (typeof params === 'undefined') {
+                params = {};
+            }
+            return bodies.push(new Body(params));
+        }
+
+        Body.clear = function () { // utility function
+            return bodies = [];
+        }
+
+        Body.prototype.move = function () { // available to all instances, but not a part of them
+
+            //this.xV = (this.x - this.oldX)*fps;
+            //this.yV = (this.y - this.oldY)*fps;
+            this.xV += this.xA / fps;
+            this.yV += this.yA / fps;
+            this.oldX = this.x;
+            this.oldY = this.y;
+            this.x += this.xV / fps;
+            this.y += this.yV / fps;
+
+            /*
+            // Störmer-Verlet. Is velocity implicit.
+            const nextX = 2*this.x - this.oldX + this.xA*(1/fps)**2;
+            const nextY = 2*this.y - this.oldY + this.yA*(1/fps)**2;
+            this.xV = (nextX - this.x)*fps;
+            this.yV = (nextY - this.y)*fps;
+            this.oldX = this.x;
+            this.oldY = this.y;
+            this.x = nextX;
+            this.y = nextY;
+            */
+
+            if (this.edgeBlock) {
+                if (this.x + this.radius > window.innerWidth) {
+                    this.x = window.innerWidth - this.radius;
+                    this.xV *= -wallDampen;
+                }
+                else if (this.x - this.radius < 0) {
+                    this.x = this.radius;
+                    this.xV *= -wallDampen;
+                }
+                if (this.y + this.radius > window.innerHeight) {
+                    this.y = window.innerHeight - this.radius;
+                    this.yV *= -wallDampen;
+                }
+                else if (this.y - this.radius < 0) {
+                    this.y = this.radius;
+                    this.yV *= -wallDampen;
+                }
+            }
+            if (this.grabbed) {
+                this.xA = 0;
+                this.yA = 0;
+
+                this.x = mouse.x;
+                this.y = mouse.y;
+                this.xV = (this.x - this.oldX) * fps;
+                this.yV = (this.y - this.oldY) * fps;
+            }
+        }
+
+        Body.prototype.draw = function () { // available to all instances, but not a part of them
             ctx.beginPath();
             ctx.strokeStyle = 'black';
-            ctx.moveTo(x1 + vectToCol1.i, canvas.height - (y1 + vectToCol1.j));
-            ctx.lineTo((x1+vectToCol1.i) + pVel1M*norm.i, (canvas.height- (y1+vectToCol1.j + pVel1M*norm.j)));
+            ctx.lineWidth = this.lineWidth;
+            ctx.fillStyle = this.color;
+            ctx.arc(this.x, window.innerHeight - this.y, this.radius, 0, Math.PI * 2, true);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath()
+
+            ctx.beginPath();
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = this.linewidth;
+            ctx.moveTo(this.x, window.innerHeight - this.y);
+            ctx.lineTo(this.x + this.radius * Math.cos(this.a), window.innerHeight - (this.y + this.radius * Math.sin(this.a)))
             ctx.stroke();
             ctx.closePath();
+
+            //draw force vector scaled down
             ctx.beginPath();
             ctx.strokeStyle = 'white';
-            ctx.moveTo(x2 + vectToCol2.i, canvas.height - (y2 + vectToCol2.j));
-            ctx.lineTo((x2+vectToCol2.i) + pVel2M*norm.i, (canvas.height- (y2+vectToCol2.j + pVel2M*norm.j)));
+            ctx.lineWidth = 2;
+            ctx.moveTo(this.x, window.innerHeight - this.y);
+            let val = 3900;
+            ctx.lineTo(this.x + this.mass * this.xA / val, window.innerHeight - (this.y + this.mass * this.yA / val));
             ctx.stroke();
             ctx.closePath();
-            console.log(pVel1M, pVel2M);
-            clearInterval(loop);
-            */
-            
-            /*
-            collidingPairs[c][0].xV = vel1.dot(norm)*norm.i + nV1Perp*perp.i * bodyDampen;
-            collidingPairs[c][0].yV = vel1.dot(norm)*norm.j + nV1Perp*perp.j * bodyDampen;
-            
-            collidingPairs[c][1].xV = vel2.dot(norm)*norm.i + nV2Perp*perp.i * bodyDampen;
-            collidingPairs[c][1].yV = vel2.dot(norm)*norm.j + nV2Perp*perp.j * bodyDampen;
-            */
         }
+
+        // calculates gravitational attraction to 'otherObject'
+        Body.prototype.gravityCalc = function (otherObject) { // available to all instances, but not a part of them
+            const x1 = this.x;
+            const y1 = this.y;
+            const x2 = otherObject.x;
+            const y2 = otherObject.y;
+            const dist = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5;
+            const strength = (gravity_c * otherObject.mass) / (dist ** 2); // F = Gm1m2/r^2
+            const xA = strength * (x2 - x1) / dist;
+            const yA = strength * (y2 - y1) / dist;
+
+            return [xA, yA]
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Logic Code
+
+        const bodyHandle = function () {
+            for (let i = 0; i < bodies.length; i++) {
+
+                if (mouse.down && nothingGrabbed) {
+                    if (Math.abs((mouse.x - bodies[i].x) ** 2 + (mouse.y - bodies[i].y) ** 2) <= bodies[i].radius ** 2) {
+                        bodies[i].grabbed = true;
+                        nothingGrabbed = false;
+                    }
+                }
+
+                bodies[i].draw()
+
+                if (running) {
+                    if (falling) {
+                        bodies[i].yA -= acceleration;
+                    }
+                    bodies[i].move();
+                }
+
+                bodies[i].xA = 0;
+                bodies[i].yA = 0;
+                let collidingPairs = []
+                if (gravityOn || bodyCollision) {
+                    for (b = 0; b < bodies.length; b++) {
+                        if (i != b) {
+                            if (bodyCollision) {
+                                const x1 = bodies[i].x;
+                                const y1 = bodies[i].y;
+                                const x2 = bodies[b].x;
+                                const y2 = bodies[b].y;
+                                const rSum = bodies[i].radius + bodies[b].radius;
+                                const dist = { // vector
+                                    i: x2 - x1,
+                                    j: y2 - y1,
+                                    mag: ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5,
+                                    norm: {
+                                        i: (x2 - x1) / (((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5),
+                                        j: (y2 - y1) / (((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5)
+                                    }
+                                }
+                                if (dist.mag <= rSum) { // static collision
+                                    const overlap = rSum - dist.mag;
+                                    const iOldX = bodies[i].oldX;
+                                    const iOldY = bodies[i].oldY;
+                                    const bOldX = bodies[b].oldX;
+                                    const bOldY = bodies[b].oldY;
+                                    bodies[i].x -= overlap * bodies[b].mass / (bodies[i].mass + bodies[b].mass) * dist.norm.i;
+                                    bodies[i].y -= overlap * bodies[b].mass / (bodies[i].mass + bodies[b].mass) * dist.norm.j;
+                                    bodies[b].x += overlap * bodies[i].mass / (bodies[i].mass + bodies[b].mass) * dist.norm.i;
+                                    bodies[b].y += overlap * bodies[i].mass / (bodies[i].mass + bodies[b].mass) * dist.norm.j;
+
+
+                                    bodies[i].xV = (bodies[i].x - iOldX) * fps;
+                                    bodies[i].yV = (bodies[i].y - iOldY) * fps;
+                                    bodies[b].xV = (bodies[b].x - bOldX) * fps;
+                                    bodies[b].yV = (bodies[b].y - bOldY) * fps;
+
+
+                                    collidingPairs.push([bodies[i], bodies[b]]);
+                                }
+                            }
+                            if (gravityOn) {
+                                if (bodies[i].gravity) {
+                                    const accel = bodies[i].gravityCalc(bodies[b]);
+                                    bodies[i].xA += accel[0];
+                                    bodies[i].yA += accel[1];
+                                }
+                            }
+                        }
+                    }
+                }
+                for (let c = 0; c < collidingPairs.length; c++) { // dynamic collision
+                    const x1 = collidingPairs[c][0].x;
+                    const y1 = collidingPairs[c][0].y;
+                    const r1 = collidingPairs[c][0].radius;
+                    const x2 = collidingPairs[c][1].x;
+                    const y2 = collidingPairs[c][1].y;
+                    const r2 = collidingPairs[c][1].radius;
+                    const dist = { // vector from b1 to b2
+                        i: x2 - x1,
+                        j: y2 - y1,
+                        mag: ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5,
+                        norm: {
+                            i: (x2 - x1) / (((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5),
+                            j: (y2 - y1) / (((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5)
+                        }
+                    }
+                    const m1 = collidingPairs[c][0].mass;
+                    const m2 = collidingPairs[c][1].mass;
+
+                    const norm = { // vector normal along 'wall' of collision
+                        i: -dist.j / (((dist.i) ** 2 + (-dist.j) ** 2) ** 0.5),
+                        j: dist.i / (((dist.i) ** 2 + (-dist.j) ** 2) ** 0.5)
+                    }
+                    const perp = { // vector normal pointing from b1 to b2
+                        i: dist.norm.i,
+                        j: dist.norm.j
+                    }
+
+                    const vel1 = { // vector of b1 velocity
+                        i: collidingPairs[c][0].xV,
+                        j: collidingPairs[c][0].yV,
+                        dot: function (vect) {
+                            return collidingPairs[c][0].xV * vect.i + collidingPairs[c][0].yV * vect.j
+                        }
+                    }
+                    const vel2 = { // vector of b2 velocity
+                        i: collidingPairs[c][1].xV,
+                        j: collidingPairs[c][1].yV,
+                        dot: function (vect) {
+                            return collidingPairs[c][1].xV * vect.i + collidingPairs[c][1].yV * vect.j
+                        }
+                    }
+
+                    // new velocities along perp^ of b1 and b2
+                    const nV1Perp = (vel1.dot(perp)) * (m1 - m2) / (m1 + m2) + (vel2.dot(perp)) * (2 * m2) / (m1 + m2);
+                    const nV2Perp = (vel1.dot(perp)) * (2 * m1) / (m1 + m2) + (vel2.dot(perp)) * (m2 - m1) / (m1 + m2);
+
+                    /* testing rotation after collision
+                    // velocities of the points of collision on b1 and b2
+                    const pVel1M = vel1.dot(norm) + collidingPairs[c][0].aV*r1;
+                    const pVel2M = vel2.dot(norm) + collidingPairs[c][1].aV*r2;
+                    
+                    // moment of inertia for b1 and b2
+                    const I1 = 1/2 * m1 * r1**2;
+                    const I2 = 1/2 * m2 * r2**2;
+                    
+                    // new velocities of the points of collisions on b1 and b2
+                    const newpVel1M = ((I1-I2)/(I1+I2))*pVel1M + ((2*I2)/(I1+I2))*pVel2M;
+                    const newpVel2M = ((2*I1)/(I1+I2))*pVel1M + ((I2-I1)/(I1+I2))*pVel2M;
+                    
+                    const vectToCol1 = { // vector from x1,y1 to point of collision on b1
+                        i: r1*perp.i,
+                        j: r1*perp.j
+                    };
+                    const vectToCol2 = { // vector from x2,y2 to point of collision on b2
+                        i: r2*-perp.i,
+                        j: r2*-perp.j
+                    };
+                    
+                    // sign of cross product of pVelM and vectToCol
+                    let vCrossR1 = (pVel1M*norm.i)*(vectToCol1.j) - (pVel1M*norm.j)*(vectToCol1.i);
+                    vCrossR1 = vCrossR1/Math.abs(vCrossR1);
+                    let vCrossR2 = (pVel2M*norm.i)*(vectToCol2.j) - (pVel2M*norm.j)*(vectToCol2.i);
+                    vCrossR2 = vCrossR2/Math.abs(vCrossR2);
         
-    }
-}
+                    
+                    collidingPairs[c][0].aV = vCrossR1 * (newpVel1M)/r1;
+                    collidingPairs[c][1].aV = vCrossR2 * (newpVel2M)/r2;
+                    
+                    /* draw collision point velocity vectors [debugging]
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'black';
+                    ctx.moveTo(x1 + vectToCol1.i, canvas.height - (y1 + vectToCol1.j));
+                    ctx.lineTo((x1+vectToCol1.i) + pVel1M*norm.i, (canvas.height- (y1+vectToCol1.j + pVel1M*norm.j)));
+                    ctx.stroke();
+                    ctx.closePath();
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'white';
+                    ctx.moveTo(x2 + vectToCol2.i, canvas.height - (y2 + vectToCol2.j));
+                    ctx.lineTo((x2+vectToCol2.i) + pVel2M*norm.i, (canvas.height- (y2+vectToCol2.j + pVel2M*norm.j)));
+                    ctx.stroke();
+                    ctx.closePath();
+                    console.log(pVel1M, pVel2M);
+                    clearInterval(loop);
+                    */
 
-function inputHandle() {
-    if(nothingGrabbed && mouse.down) {
-        Body.create({
-            x: mouse.x, 
-            y: mouse.y,
-            oldX: mouse.x,
-            oldY: mouse.y,
-            xV: 0,
-            yV: 0,
-            mass: 90});
-        bodies[bodies.length-1].move();
-        bodies[bodies.length-1].draw();
-    }
-}
+                    /*
+                    collidingPairs[c][0].xV = vel1.dot(norm)*norm.i + nV1Perp*perp.i * bodyDampen;
+                    collidingPairs[c][0].yV = vel1.dot(norm)*norm.j + nV1Perp*perp.j * bodyDampen;
+                    
+                    collidingPairs[c][1].xV = vel2.dot(norm)*norm.i + nV2Perp*perp.i * bodyDampen;
+                    collidingPairs[c][1].yV = vel2.dot(norm)*norm.j + nV2Perp*perp.j * bodyDampen;
+                    */
+                }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Main Loop
+            }
+        }
 
-const main = function() {
-    // blank out canvas
-    ctx.beginPath();
-    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-    ctx.closePath();
-    
-    bodyHandle();
-    inputHandle();
-}
+        function inputHandle() {
+            if (nothingGrabbed && mouse.down) {
+                Body.create({
+                    x: mouse.x,
+                    y: mouse.y,
+                    oldX: mouse.x,
+                    oldY: mouse.y,
+                    xV: 0,
+                    yV: 0,
+                    mass: 90
+                });
+                bodies[bodies.length - 1].move();
+                bodies[bodies.length - 1].draw();
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Main Loop
+
+        const main = function () {
+            // blank out canvas
+            ctx.beginPath();
+            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+            ctx.closePath();
+
+            bodyHandle();
+            inputHandle();
+        }
 
 
 
-</script>
-<style>
-    html {
-        height: 100%;
-        width: 100%;
-    }
-    body {
-        height: 100%;
-        width: 100%;
-        padding: 0;
-        margin: 0;
-        overscroll-behavior: contain;
-        position: fixed;
-        overflow: hidden;
-    }
-    canvas {
-        padding: 0;
-        margin: 0;
-    }
+    </script>
+    <style>
+        html {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            height: 100%;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            overscroll-behavior: contain;
+            position: fixed;
+            overflow: hidden;
+        }
+
+        canvas {
+            padding: 0;
+            margin: 0;
+        }
     </style>
 </head>
+
 <body>
-<canvas id="canvas" width='300px' height='300px'></canvas>
+    <canvas id="canvas" width='300px' height='300px'></canvas>
+
 </html>
