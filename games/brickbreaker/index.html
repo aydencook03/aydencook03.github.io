@@ -320,6 +320,34 @@
 
                                 }
                             }
+                            else {
+                                // If we got here, the ball ended up inside the paddle.
+                                // Treat it as a top collision:
+                                if (bricksLeft <= 0) {
+                                    running = false;
+                                    body.style.background = winC;
+                                    won = true;
+                                    try {
+                                        window.navigator.vibrate(1000);
+                                    } catch {
+
+                                    }
+                                    setTimeout(function () {
+                                        body.style.background = bodyC;
+                                        variables();
+                                        won = false;
+                                    }, 3000);
+                                }
+                                this.y = paddleY - this.r;
+                                this.yV = -(Math.abs(this.yV));
+                                this.xV = (this.x - (paddleX + paddleW / 2)) * upper / (paddleW / 2);
+                                try {
+                                    window.navigator.vibrate(vibr);
+                                } catch {
+
+                                }
+                            }
+
                         }
                     }
                 }
@@ -463,9 +491,6 @@
             deltaT = (time - prev) / 1000;
             deltaT = Math.min(deltaT, 1 / 60);
             fps = 1 / deltaT;
-            if (fps < 30) {
-                fps = 30;
-            }
             //console.log(fps) //console logs the fps
 
             // blank out canvas
