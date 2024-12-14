@@ -461,6 +461,7 @@
         function main(time) {
 
             deltaT = (time - prev) / 1000;
+            deltaT = Math.min(deltaT, 1 / 60);
             fps = 1 / deltaT;
             if (fps < 30) {
                 fps = 30;
