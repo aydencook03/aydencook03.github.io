@@ -17,6 +17,13 @@
     "categories": [
         "games"
     ],
+    "related_applications": [
+        {
+            "platform": "webapp",
+            "url": "https://html.aydencook.com/games/snake/",
+            "id": "snake_game"
+        }
+    ],
     "icons": [
         {
             "src": "./icons/favicon.ico",

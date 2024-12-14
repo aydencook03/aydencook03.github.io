@@ -106,6 +106,13 @@
     "launch_handler": {
         "client_mode": "auto"
     },
+    "related_applications": [
+        {
+            "platform": "webapp",
+            "url": "https://html.aydencook.com/games/brickbreaker/",
+            "id": "brickbreaker_game"
+        }
+    ],
     "categories": [
         "games"
     ],
