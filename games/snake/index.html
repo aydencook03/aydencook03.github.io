@@ -367,20 +367,19 @@
             this.x = pos.x || Math.floor(Math.random() * gridCount);
             this.y = pos.y || Math.floor(Math.random() * gridCount);
 
-            if (typeof snake === 'undefined') {
-
-            } else {
-                inSnake = true
-                while (inSnake) {
+            if (typeof snake !== 'undefined') {
+                let inSnake;
+                do {
                     this.x = Math.floor(Math.random() * gridCount);
                     this.y = Math.floor(Math.random() * gridCount);
-                    inSnake = false
+                    inSnake = false;
                     for (let i = 0; i < snake.body.length; i++) {
-                        if (this.x == snake.body[i][0] && this.y == snake.body[i][1]) {
-                            inSnake = true
+                        if (this.x === snake.body[i][0] && this.y === snake.body[i][1]) {
+                            inSnake = true;
+                            break;
                         }
                     }
-                }
+                } while (inSnake);
             }
 
             this.draw = function () {
@@ -394,6 +393,7 @@
                 ctx.closePath();
             }
         }
+
 
         ////////////////////////////////////////////////////////////////////
         // Main Loop
