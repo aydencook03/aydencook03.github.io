@@ -24,6 +24,7 @@
             "id": "snake_game"
         }
     ],
+    "prefer_related_applications": false,
     "icons": [
         {
             "src": "./icons/favicon.ico",

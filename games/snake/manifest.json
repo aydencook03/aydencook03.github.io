@@ -113,6 +113,7 @@
             "id": "brickbreaker_game"
         }
     ],
+    "prefer_related_applications": false,
     "categories": [
         "games"
     ],
