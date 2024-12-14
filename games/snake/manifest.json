@@ -103,6 +103,9 @@
     "dir": "ltr",
     "lang": "en",
     "orientation": "portrait-primary",
+    "launch_handler": {
+        "client_mode": "auto"
+    },
     "categories": [
         "games"
     ],

@@ -4,6 +4,9 @@
     "display": "fullscreen",
     "name": "BrickBreaker Game",
     "orientation": "portrait-primary",
+    "launch_handler": {
+        "client_mode": "auto"
+    },
     "scope": "./",
     "short_name": "BrickBreaker",
     "start_url": "./index.html",
