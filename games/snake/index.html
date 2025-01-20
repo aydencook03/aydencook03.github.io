@@ -25,7 +25,14 @@
             });
         }
 
-        window.onload = function () { reset() }
+        let highScore = 0;
+
+        window.onload = function () {
+            // Load the stored high score, or default to 0 if none found
+            highScore = parseInt(localStorage.getItem('snakeHighScore')) || 0;
+            reset();
+        };
+
         document.addEventListener('keydown', keyDown);
         window.addEventListener('resize', resize);
         document.addEventListener('touchstart', touchStart);
@@ -138,6 +145,57 @@
             canvas.style.borderRadius = `${Math.round(ctx.lineWidth) * 5}px`;
         }
 
+        function onCanvasClick(e) {
+            // get the click XY in canvas space
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // The same coordinates used in main() to draw your text
+            // First line (Score:)
+            const scoreX = scale / 50;
+            const scoreY = scale / 50;
+
+            // Second line (High Score:)
+            const hsX = scale / 50;
+            const hsY = scale / 50 + (scale / 35);
+
+            // The font size is (scale / 40). Let's store it and reapply it here.
+            const fontSize = scale / 40;
+            ctx.font = `bold ${fontSize}px arial`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+
+            // We measure both lines to see which is wider
+            const scoreString = `Score: ${snake.body.length - 1}`;
+            const hsString = `High Score: ${highScore}`;
+
+            // measureText() gives us the width in pixels
+            const scoreWidth = ctx.measureText(scoreString).width;
+            const hsWidth = ctx.measureText(hsString).width;
+            const widestText = Math.max(scoreWidth, hsWidth);
+
+            // We'll define our bounding box to start at the top line
+            // and extend to the bottom of the second line:
+            // (Remember the second line starts at hsY, so total height 
+            // covers from scoreY to (hsY + fontSize).)
+            const left = scoreX;
+            const top = scoreY;
+            const right = scoreX + widestText;
+            const bottom = hsY + fontSize; // bottom of the second line
+
+            // Check if the user clicked inside that rectangle
+            if (clickX >= left && clickX <= right && clickY >= top && clickY <= bottom) {
+                // The user clicked in the top-left text region
+                if (confirm("Reset the high score?")) {
+                    highScore = 0;
+                    localStorage.setItem('snakeHighScore', highScore);
+                }
+            }
+        }
+
+
+
         ////////////////////////////////////////////////////////////////////
         // Initialization variables
 
@@ -174,6 +232,8 @@
             snake = new Snake();
 
             loop = setInterval(main, 1000 / fps);
+
+            canvas.addEventListener('click', onCanvasClick);
         }
 
         ////////////////////////////////////////////////////////////////////
@@ -185,18 +245,13 @@
                 pos = {};
             }
 
-
             let x = pos.x || Math.floor(Math.random() * gridCount);
             let y = pos.y || Math.floor(Math.random() * gridCount);
-
-            if (x == apple.x && y == apple.y) {
-                snake = new Snake();
-            }
 
             this.x = x;
             this.y = y;
             this.vel = [0, 0];
-            this.body = [[]];
+            this.body = [[this.x, this.y]];
             this.dead = false;
             this.eaten = false;
             this.inputs = [];
@@ -421,10 +476,22 @@
             apple.draw();
             snake.update();
 
+            const currentLength = snake.body.length - 1;
+            if (currentLength > highScore) {
+                highScore = currentLength;
+                localStorage.setItem('snakeHighScore', highScore);
+            }
+
             if (text) {
                 ctx.beginPath();
                 ctx.fillStyle = textC;
-                ctx.fillText(`Length: ${snake.body.length - 1}`, scale / 2, scale / gridCount / 2);
+
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+
+                ctx.fillText(`Score: ${currentLength}`, scale / 50, scale / 50);
+
+                ctx.fillText(`High Score: ${highScore}`, scale / 50, scale / 50 + (scale / 35));
                 ctx.closePath();
             }
         }
