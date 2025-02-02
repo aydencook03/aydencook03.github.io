@@ -98,7 +98,7 @@
     "background_color": "#37474f",
     "display": "fullscreen",
     "scope": "./",
-    "theme_color": "#646464",
+    "theme_color": "#37474f",
     "id": "snake_game",
     "dir": "ltr",
     "lang": "en",
@@ -119,10 +119,7 @@
     ],
     "description": "A minimalist take on the classic snake game.",
     "display_override": [
-        "window-controls-overlay",
         "fullscreen",
-        "standalone",
-        "minimal-ui",
-        "browser"
+        "standalone"
     ]
 }

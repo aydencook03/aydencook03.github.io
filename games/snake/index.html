@@ -200,6 +200,7 @@
         // Initialization variables
 
         function reset() {
+            html = document.documentElement;
             canvas = document.getElementById('canvas');
             body = document.getElementsByTagName('body')[0];
             div = document.getElementsByTagName('div')[0];
@@ -225,7 +226,7 @@
             gridC = 'grey';
             textC = 'white';
 
-
+            html.style.background = bodyC;
             body.style.background = bodyC;
 
             apple = new Apple();
@@ -390,6 +391,7 @@
                 this.inputs = [];
                 prevInput = null
                 body.style.background = dieC;
+                html.style.background = dieC;
                 try {
                     window.navigator.vibrate(1000);
                 } catch {
@@ -397,6 +399,7 @@
                 }
                 setTimeout(function () {
                     body.style.background = bodyC;
+                    html.style.background = bodyC;
                     snake = new Snake();
                     return
                 }, 3000);
