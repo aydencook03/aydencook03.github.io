@@ -229,8 +229,8 @@
             html.style.background = bodyC;
             body.style.background = bodyC;
 
-            apple = new Apple();
             snake = new Snake();
+            apple = new Apple();
 
             loop = setInterval(main, 1000 / fps);
 
@@ -418,26 +418,20 @@
         ////////////////////////////////////////////////////////////////////
         // Apple Constructor Function
 
-        function Apple(pos) {
-            if (typeof pos === 'undefined') {
-                pos = {};
-            }
-            this.x = pos.x || Math.floor(Math.random() * gridCount);
-            this.y = pos.y || Math.floor(Math.random() * gridCount);
-
+        function Apple() {
             if (typeof snake !== 'undefined') {
-                let inSnake;
-                do {
+                let inSnake = true;
+                while (inSnake) {
                     this.x = Math.floor(Math.random() * gridCount);
                     this.y = Math.floor(Math.random() * gridCount);
                     inSnake = false;
                     for (let i = 0; i < snake.body.length; i++) {
-                        if (this.x === snake.body[i][0] && this.y === snake.body[i][1]) {
+                        if (this.x == snake.body[i][0] && this.y == snake.body[i][1]) {
                             inSnake = true;
                             break;
                         }
                     }
-                } while (inSnake);
+                }
             }
 
             this.draw = function () {
