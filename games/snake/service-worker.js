@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-game-cache-v8';
+const CACHE_NAME = 'my-game-cache-v9';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
